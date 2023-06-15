@@ -6,8 +6,61 @@
 
 
 ---
-<details>
-<summary><b>Installation Instructions</b></summary>
+<details><summary><b>Configuration Options</b></summary>
+
+
+`2 - Toggles`
+
+Enable First Person []
+
+* If on, First Person is enabled.
+    * Default Value: On
+
+Hide Head []
+
+* If on, the camera will not use the culling mode and will instead shrink the head to hide it. This method is a bit
+  better overall as your armor isn't see through, but looks a little weird. Headless people always do.
+    * Default Value: Off
+
+`3 - Camera`
+
+Default FOV []
+
+* Default FOV for First Person.
+    * Default Value: 65
+
+NearClipPlaneMin []
+
+* Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility;
+  too high might clip nearby objects.
+    * Default Value: 0.3
+
+NearClipPlaneMax []
+
+* Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility;
+  too high might clip nearby objects.
+    * Default Value: 0.3
+
+`4 - Keyboard Shortcuts`
+
+Toggle First Person Shortcut []
+
+* Keyboard Shortcut needed to toggle First Person.
+    * Default Value: H + LeftShift
+
+Raise FOV Shortcut []
+
+* Keyboard Shortcut needed to raise FOV.
+    * Default Value: PageUp + LeftShift
+
+Lower FOV Shortcut []
+
+* Keyboard Shortcut needed to lower FOV.
+    * Default Value: PageDown + LeftShift
+
+</details>
+
+<details><summary><b>Installation Instructions</b></summary>
 
 ***You must have BepInEx installed correctly! I can not stress this enough.***
 
@@ -31,7 +84,8 @@
 
    > For Thunderstore Mod Manager, you can also install it through the Overwolf app store
    ![](https://i.imgur.com/HQLZFp4.png "Thunderstore Mod Manager Download")
-2. **Open the Mod Manager and search for "FirstPersonMode" under the Online tab. `Note: You can also search for "Azumatt" to find all my mods.`**
+2. **Open the Mod Manager and search for "FirstPersonMode" under the Online
+   tab. `Note: You can also search for "Azumatt" to find all my mods.`**
 
    `The image below shows VikingShip as an example, but it was easier to reuse the image.`
 
@@ -73,6 +127,7 @@ V+ Developer Credits (For some of the code used in this mod)
 * Nathan 'NCJ' J. - https://github.com/ncjsvr
 
 # Credits
+
 * Greg 'Zedle' G. - https://github.com/zedle
 * Paige 'radmint' N. - https://github.com/radmint
 * Chris 'Xenofell' S. - https://github.com/cstamford

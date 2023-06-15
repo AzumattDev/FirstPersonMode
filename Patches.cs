@@ -1,4 +1,5 @@
-﻿using FirstPersonMode.Util;
+﻿using System.Collections;
+using FirstPersonMode.Util;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -21,16 +22,6 @@ public static class CharacterSetVisiblePatch
         return false;
     }
 }
-
-[HarmonyPatch(typeof(Player), nameof(Player.TestGhostClipping))]
-public static class PlayerTestGhostClippingPatch
-{
-    private static bool Prefix()
-    {
-        return FirstPersonModePlugin.firstPersonEnabled.Value != FirstPersonModePlugin.Toggle.On;
-    }
-}
-
 
 [HarmonyPatch(typeof(GameCamera), nameof(GameCamera.Awake))]
 public static class GameCameraAwakePatch
@@ -67,7 +58,7 @@ public static class UpdateVisEquipment_SetHelmetequiped2Nothing
 
         if (!__instance.gameObject.GetComponent<Player>())
             return;
-        if(__instance.gameObject.GetComponent<Player>() != Player.m_localPlayer)
+        if (__instance.gameObject.GetComponent<Player>() != Player.m_localPlayer)
             return;
         if (___m_currentHelmetItemHash != hash)
             _helmetVisRemoved = false;
@@ -86,6 +77,7 @@ public static class UpdateVisEquipment_SetHelmetequiped2Nothing
                         componentsInChild.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
                 }
             }
+
             ___m_currentHelmetItemHash = -1;
             _helmetVisRemoved = true;
             _helmetVisRemovedPrefabrestored = false;
@@ -98,8 +90,8 @@ public static class UpdateVisEquipment_SetHelmetequiped2Nothing
             ___m_currentHelmetItemHash = -1;
         }
     }
-    
-    
+
+
     private static void Postfix(
         VisEquipment __instance,
         bool ___m_isPlayer,
@@ -117,7 +109,7 @@ public static class UpdateVisEquipment_SetHelmetequiped2Nothing
 
         if (!__instance.gameObject.GetComponent<Player>() || _helmetVisRemovedPrefabrestored)
             return;
-        if(__instance.gameObject.GetComponent<Player>() != Player.m_localPlayer)
+        if (__instance.gameObject.GetComponent<Player>() != Player.m_localPlayer)
             return;
         GameObject itemPrefab = ObjectDB.instance.GetItemPrefab(hash);
         if (!itemPrefab)
@@ -140,7 +132,6 @@ public static class UpdateVisEquipment_SetHelmetequiped2Nothing
 [HarmonyPatch(typeof(GameCamera), nameof(GameCamera.UpdateCamera))]
 public static class GameCameraUpdatePatch
 {
-
     private static void Postfix(ref GameCamera __instance, float dt)
     {
         if (FirstPersonModePlugin.firstPersonEnabled.Value != FirstPersonModePlugin.Toggle.On) return;
@@ -156,16 +147,55 @@ public static class GameCameraUpdatePatch
 
         if (localPlayer == null) return;
 
-        if (FirstPersonModePlugin.toggleFirstPersonHotkey.Value.IsKeyDown())
+        bool isFirstPerson = FirstPersonModePlugin.DynamicPerson.isFirstPerson;
+        bool isToggleInitiated = FirstPersonModePlugin.toggleFirstPersonHotkey.Value.IsKeyDown();
+
+        // Scrolling in to first person
+        if (__instance.m_distance <= 1 && !isFirstPerson && !isToggleInitiated)
         {
-            FirstPersonModePlugin.DynamicPerson.isFirstPerson = !FirstPersonModePlugin.DynamicPerson.isFirstPerson;
-            if (FirstPersonModePlugin.DynamicPerson.isFirstPerson)
+            isFirstPerson = true;
+            FirstPersonModePlugin.DynamicPerson.isFirstPerson = true;
+            Functions.SetupFP(ref __instance, ref localPlayer);
+        }
+        // Scrolling out to third person
+        else if (__instance.m_minDistance > 0.0 && isFirstPerson && !isToggleInitiated)
+        {
+            isFirstPerson = false;
+            FirstPersonModePlugin.DynamicPerson.isFirstPerson = false;
+
+            // Exiting first person mode
+            __instance.m_3rdOffset = FirstPersonModePlugin.DynamicPerson.noFP_3rdOffset;
+            __instance.m_fpsOffset = FirstPersonModePlugin.DynamicPerson.noFP_fpsOffset;
+
+            // Revert to stored constants
+            __instance.m_minDistance = FirstPersonModePlugin.CameraConstants.minDistance;
+            __instance.m_maxDistance = FirstPersonModePlugin.CameraConstants.maxDistance;
+            __instance.m_zoomSens = FirstPersonModePlugin.CameraConstants.zoomSens;
+
+            // Default Field Of View value
+            __instance.m_fov = 65f;
+
+            // Normalize head scale
+            localPlayer.m_head.localScale = Vector3.one;
+            localPlayer.m_eye.localScale = Vector3.one;
+        }
+
+        // Toggling using hotkey
+        if (isToggleInitiated)
+        {
+            isFirstPerson = !isFirstPerson;
+
+
+            FirstPersonModePlugin.DynamicPerson.isFirstPerson = isFirstPerson;
+
+            if (isFirstPerson)
             {
                 Functions.SetupFP(ref __instance, ref localPlayer);
-
             }
             else
             {
+                // Jump camera back to prevent auto forcing you back into first person mode.
+                __instance.m_distance = 1.5f;
                 // Exiting first person mode
                 __instance.m_3rdOffset = FirstPersonModePlugin.DynamicPerson.noFP_3rdOffset;
                 __instance.m_fpsOffset = FirstPersonModePlugin.DynamicPerson.noFP_fpsOffset;
@@ -211,5 +241,42 @@ public static class GameCameraUpdatePatch
         }
 
         __instance.UpdateCameraShake(dt);
+    }
+}
+
+[HarmonyPatch(typeof(DamageText), nameof(DamageText.Awake))]
+static class DamageTextAwakePatch
+{
+    static void Prefix(DamageText __instance)
+    {
+        // Attempt to show the player the damage they are doing by moving the text distance
+        __instance.m_maxTextDistance = 100f;
+        __instance.m_smallFontDistance = 35f;
+    }
+}
+
+[HarmonyPatch(typeof(Hud), nameof(Hud.UpdateShipHud))]
+static class UpdateHud_fixshiphud
+{
+    private static void Postfix(Hud __instance, Player player)
+    {
+        if (FirstPersonModePlugin.firstPersonEnabled.Value != FirstPersonModePlugin.Toggle.On)
+            return;
+        Camera mainCamera = Utils.GetMainCamera();
+        if (mainCamera == null)
+            return;
+        if (FirstPersonModePlugin.DynamicPerson.isFirstPerson)
+        {
+            __instance.m_shipControlsRoot.transform.position = new Vector3(mainCamera.pixelWidth * 0.5f, mainCamera.pixelHeight * 0.2f, 0.0f);
+        }
+        else
+        {
+            Ship controlledShip = player.GetControlledShip();
+            if (controlledShip != null)
+            {
+                // Normal position
+                __instance.m_shipControlsRoot.transform.position = mainCamera.WorldToScreenPoint(controlledShip.m_controlGuiPos.position);
+            }
+        }
     }
 }

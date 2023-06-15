@@ -25,11 +25,11 @@ public static class Functions
 {
     internal static bool ShouldIgnoreAdjustments(Player localPlayer)
     {
-        return Chat.instance?.HasFocus() == true || Console.IsVisible() || 
-               InventoryGui.IsVisible() || StoreGui.IsVisible() || Menu.IsVisible() || 
+        return Chat.instance?.HasFocus() == true || Console.IsVisible() ||
+               InventoryGui.IsVisible() || StoreGui.IsVisible() || Menu.IsVisible() ||
                Minimap.IsOpen() || localPlayer.InCutscene() || localPlayer.InPlaceMode();
     }
-    
+
     // Put outside just to clean up
     internal static void SetupFP(ref GameCamera __instance, ref Player localPlayer)
     {
@@ -40,7 +40,7 @@ public static class Functions
         __instance.m_fpsOffset = Vector3.zero;
         // Set the camera stuff to 0 or our new value
         __instance.m_minDistance = 0;
-        __instance.m_maxDistance = 0;
+        __instance.m_maxDistance = 0.0f;
         __instance.m_zoomSens = 0;
         __instance.m_nearClipPlaneMax = FirstPersonModePlugin.NearClipPlaneMaxConfig.Value;
         __instance.m_nearClipPlaneMin = FirstPersonModePlugin.NearClipPlaneMinConfig.Value;
@@ -85,6 +85,11 @@ public static class Functions
         if (FirstPersonModePlugin.DynamicPerson.isFirstPerson)
         {
             __instance.transform.position = localPlayer.m_head.position + new Vector3(0, 0.2f, 0);
+            if (Input.GetAxis("Mouse ScrollWheel") < 0) // If scrolling down
+            {
+                __instance.m_minDistance += 2f; // Increment m_minDistance
+                FirstPersonModePlugin.FirstPersonModeLogger.LogError("m_minDistance: " + __instance.m_minDistance);
+            }
         }
         else
         {
