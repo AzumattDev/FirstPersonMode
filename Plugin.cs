@@ -16,7 +16,7 @@ namespace FirstPersonMode
     public class FirstPersonModePlugin : BaseUnityPlugin
     {
         internal const string ModName = "FirstPersonMode";
-        internal const string ModVersion = "1.1.0";
+        internal const string ModVersion = "1.1.1";
         internal const string Author = "Azumatt";
         private const string ModGUID = Author + "." + ModName;
         private static string ConfigFileName = ModGUID + ".cfg";
@@ -37,47 +37,53 @@ namespace FirstPersonMode
         public struct DynamicPerson
         {
             // Are we in first person or not
-            public static bool isFirstPerson = false;
+            public static bool IsFirstPerson = false;
 
             // Holder for old m_3rdOffset value
-            public static Vector3 noFP_3rdOffset = Vector3.zero;
+            public static Vector3 NoFp3RdOffset = Vector3.zero;
 
             // Holder for old m_fpsOffset value
-            public static Vector3 noFP_fpsOffset = Vector3.zero;
+            public static Vector3 NoFpFPSOffset = Vector3.zero;
+
+            public static float MaxDeviation = 40f;
+
+            public static Quaternion PlayerRotation = Quaternion.identity;
+
+            public static Rigidbody PlayerRigidbody = null!;
         };
 
         // Struct to hold Camera constants
         public struct CameraConstants
         {
             // Valheim zoom thingy value
-            public static float zoomSens = 10f;
+            public static float ZoomSens = 10f;
 
             // Min and max distance of camera
-            public static float minDistance = 1.0f;
+            public static float MinDistance = 1.0f;
 
-            public static float maxDistance = 8f;
+            public static float MaxDistance = 8f;
 
             // Near Clip Plane max and min
-            public static float nearClipPlaneMax = 0.02f;
-            public static float nearClipPlaneMin = 0.01f;
+            public static float NearClipPlaneMax = 0.02f;
+            public static float NearClipPlaneMin = 0.01f;
         };
 
         public void Awake()
         {
             // Config for First Person being enabled
-            firstPersonEnabled = config("1 - Toggles", "Enable First Person", Toggle.On, "If on, First Person is enabled.");
-            noHeadMode = config("1 - Toggles", "Hide Head", Toggle.Off, "If on, the camera will not use the culling mode and will instead shrink the head to hide it. This method is a bit better overall as your armor isn't see through, but looks a little weird. Headless people always do.");
+            FirstPersonEnabled = config("1 - Toggles", "Enable First Person", Toggle.On, "If on, First Person is enabled.");
+            NoHeadMode = config("1 - Toggles", "Hide Head", Toggle.Off, "If on, the camera will not use the culling mode and will instead shrink the head to hide it. This method is a bit better overall as your armor isn't see through, but looks a little weird. Headless people always do.");
 
             // Default FOV
-            defaultFOV = config("2 - Camera", "Default FOV", 65.0f, "Default FOV for First Person.");
-            NearClipPlaneMinConfig = config("2 - Camera", "NearClipPlaneMin", 0.3f, "Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.");
-            NearClipPlaneMaxConfig = config("2 - Camera", "NearClipPlaneMax", 0.3f, "Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.");
+            DefaultFOV = config("2 - Camera", "Default FOV", 65.0f, "Default FOV for First Person.");
+            NearClipPlaneMinConfig = config("2 - Camera", "NearClipPlaneMin", 0.17f, "Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.");
+            NearClipPlaneMaxConfig = config("2 - Camera", "NearClipPlaneMax", 0.17f, "Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.");
 
 
             // Hotkeys for turning on FOV and controlling the FOV
-            toggleFirstPersonHotkey = config("3 - Keyboard Shortcuts", "Toggle First Person Shortcut", new KeyboardShortcut(KeyCode.H, KeyCode.LeftShift), "Keyboard Shortcut needed to toggle First Person.");
-            raiseFOVHotkey = config("3 - Keyboard Shortcuts", "Raise FOV Shortcut", new KeyboardShortcut(KeyCode.PageUp, KeyCode.LeftShift), "Keyboard Shortcut needed to raise FOV.");
-            lowerFOVHotkey = config("3 - Keyboard Shortcuts", "Lower FOV Shortcut", new KeyboardShortcut(KeyCode.PageDown, KeyCode.LeftShift), "Keyboard Shortcut needed to lower FOV.");
+            ToggleFirstPersonHotkey = config("3 - Keyboard Shortcuts", "Toggle First Person Shortcut", new KeyboardShortcut(KeyCode.H, KeyCode.LeftShift), "Keyboard Shortcut needed to toggle First Person.");
+            RaiseFOVHotkey = config("3 - Keyboard Shortcuts", "Raise FOV Shortcut", new KeyboardShortcut(KeyCode.PageUp, KeyCode.LeftShift), "Keyboard Shortcut needed to raise FOV.");
+            LowerFOVHotkey = config("3 - Keyboard Shortcuts", "Lower FOV Shortcut", new KeyboardShortcut(KeyCode.PageDown, KeyCode.LeftShift), "Keyboard Shortcut needed to lower FOV.");
 
 
             Assembly assembly = Assembly.GetExecutingAssembly();
@@ -154,19 +160,14 @@ namespace FirstPersonMode
 
         #region ConfigOptions
 
-        internal static ConfigEntry<Toggle> firstPersonEnabled = null!;
-        internal static ConfigEntry<Toggle> noHeadMode = null!;
-        internal static ConfigEntry<float> defaultFOV = null!;
-        internal static ConfigEntry<KeyboardShortcut> toggleFirstPersonHotkey = null!;
-        internal static ConfigEntry<KeyboardShortcut> raiseFOVHotkey = null!;
-        internal static ConfigEntry<KeyboardShortcut> lowerFOVHotkey = null!;
+        internal static ConfigEntry<Toggle> FirstPersonEnabled = null!;
+        internal static ConfigEntry<Toggle> NoHeadMode = null!;
+        internal static ConfigEntry<float> DefaultFOV = null!;
+        internal static ConfigEntry<KeyboardShortcut> ToggleFirstPersonHotkey = null!;
+        internal static ConfigEntry<KeyboardShortcut> RaiseFOVHotkey = null!;
+        internal static ConfigEntry<KeyboardShortcut> LowerFOVHotkey = null!;
         internal static ConfigEntry<float> NearClipPlaneMinConfig = null!;
         internal static ConfigEntry<float> NearClipPlaneMaxConfig = null!;
-        internal static ConfigEntry<float> MinPitchConfig = null!;
-        internal static ConfigEntry<float> MaxPitchConfig = null!;
-        internal static ConfigEntry<float> MinYawConfig = null!;
-        internal static ConfigEntry<float> MaxYawConfig = null!;
-        internal static ConfigEntry<Vector3> eyeOffset = null!;
 
 
         private ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description)

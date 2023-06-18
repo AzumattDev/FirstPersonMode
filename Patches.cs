@@ -11,7 +11,7 @@ public static class CharacterSetVisiblePatch
 {
     private static bool Prefix(ref Character __instance, bool visible)
     {
-        if (FirstPersonModePlugin.firstPersonEnabled.Value != FirstPersonModePlugin.Toggle.On) return true;
+        if (FirstPersonModePlugin.FirstPersonEnabled.Value != FirstPersonModePlugin.Toggle.On) return true;
 
         if (__instance.m_lodGroup == null || __instance.m_lodVisible == visible ||
             (__instance.IsPlayer() && !visible)) return false;
@@ -28,10 +28,10 @@ public static class GameCameraAwakePatch
 {
     private static void Postfix(ref GameCamera __instance)
     {
-        if (FirstPersonModePlugin.firstPersonEnabled.Value != FirstPersonModePlugin.Toggle.On) return;
-        FirstPersonModePlugin.CameraConstants.zoomSens = __instance.m_zoomSens;
-        FirstPersonModePlugin.CameraConstants.minDistance = __instance.m_minDistance;
-        FirstPersonModePlugin.CameraConstants.maxDistance = __instance.m_maxDistance;
+        if (FirstPersonModePlugin.FirstPersonEnabled.Value != FirstPersonModePlugin.Toggle.On) return;
+        FirstPersonModePlugin.CameraConstants.ZoomSens = __instance.m_zoomSens;
+        FirstPersonModePlugin.CameraConstants.MinDistance = __instance.m_minDistance;
+        FirstPersonModePlugin.CameraConstants.MaxDistance = __instance.m_maxDistance;
     }
 }
 
@@ -51,7 +51,7 @@ public static class UpdateVisEquipment_SetHelmetequiped2Nothing
         ref bool ___m_helmetHideHair,
         ref Transform ___m_helmet)
     {
-        if (FirstPersonModePlugin.noHeadMode.Value == FirstPersonModePlugin.Toggle.On)
+        if (FirstPersonModePlugin.NoHeadMode.Value == FirstPersonModePlugin.Toggle.On)
         {
             return;
         }
@@ -65,7 +65,7 @@ public static class UpdateVisEquipment_SetHelmetequiped2Nothing
         GameObject itemPrefab = ObjectDB.instance.GetItemPrefab(hash);
         if (!itemPrefab)
             return;
-        if (FirstPersonModePlugin.DynamicPerson.isFirstPerson && !_helmetVisRemoved)
+        if (FirstPersonModePlugin.DynamicPerson.IsFirstPerson && !_helmetVisRemoved)
         {
             int childCount = itemPrefab.transform.childCount;
             for (int index = 0; index < childCount; ++index)
@@ -84,7 +84,7 @@ public static class UpdateVisEquipment_SetHelmetequiped2Nothing
         }
         else
         {
-            if (FirstPersonModePlugin.DynamicPerson.isFirstPerson || !_helmetVisRemoved)
+            if (FirstPersonModePlugin.DynamicPerson.IsFirstPerson || !_helmetVisRemoved)
                 return;
             _helmetVisRemoved = false;
             ___m_currentHelmetItemHash = -1;
@@ -102,7 +102,7 @@ public static class UpdateVisEquipment_SetHelmetequiped2Nothing
         ref bool ___m_helmetHideHair,
         ref Transform ___m_helmet)
     {
-        if (FirstPersonModePlugin.noHeadMode.Value == FirstPersonModePlugin.Toggle.On)
+        if (FirstPersonModePlugin.NoHeadMode.Value == FirstPersonModePlugin.Toggle.On)
         {
             return;
         }
@@ -134,7 +134,7 @@ public static class GameCameraUpdatePatch
 {
     private static void Postfix(ref GameCamera __instance, float dt)
     {
-        if (FirstPersonModePlugin.firstPersonEnabled.Value != FirstPersonModePlugin.Toggle.On) return;
+        if (FirstPersonModePlugin.FirstPersonEnabled.Value != FirstPersonModePlugin.Toggle.On) return;
 
         if (__instance.m_freeFly)
         {
@@ -147,30 +147,30 @@ public static class GameCameraUpdatePatch
 
         if (localPlayer == null) return;
 
-        bool isFirstPerson = FirstPersonModePlugin.DynamicPerson.isFirstPerson;
-        bool isToggleInitiated = FirstPersonModePlugin.toggleFirstPersonHotkey.Value.IsKeyDown();
+        bool isFirstPerson = FirstPersonModePlugin.DynamicPerson.IsFirstPerson;
+        bool isToggleInitiated = FirstPersonModePlugin.ToggleFirstPersonHotkey.Value.IsKeyDown();
 
         // Scrolling in to first person
         if (__instance.m_distance <= 1 && !isFirstPerson && !isToggleInitiated)
         {
             isFirstPerson = true;
-            FirstPersonModePlugin.DynamicPerson.isFirstPerson = true;
+            FirstPersonModePlugin.DynamicPerson.IsFirstPerson = true;
             Functions.SetupFP(ref __instance, ref localPlayer);
         }
         // Scrolling out to third person
         else if (__instance.m_minDistance > 0.0 && isFirstPerson && !isToggleInitiated)
         {
             isFirstPerson = false;
-            FirstPersonModePlugin.DynamicPerson.isFirstPerson = false;
+            FirstPersonModePlugin.DynamicPerson.IsFirstPerson = false;
 
             // Exiting first person mode
-            __instance.m_3rdOffset = FirstPersonModePlugin.DynamicPerson.noFP_3rdOffset;
-            __instance.m_fpsOffset = FirstPersonModePlugin.DynamicPerson.noFP_fpsOffset;
+            __instance.m_3rdOffset = FirstPersonModePlugin.DynamicPerson.NoFp3RdOffset;
+            __instance.m_fpsOffset = FirstPersonModePlugin.DynamicPerson.NoFpFPSOffset;
 
             // Revert to stored constants
-            __instance.m_minDistance = FirstPersonModePlugin.CameraConstants.minDistance;
-            __instance.m_maxDistance = FirstPersonModePlugin.CameraConstants.maxDistance;
-            __instance.m_zoomSens = FirstPersonModePlugin.CameraConstants.zoomSens;
+            __instance.m_minDistance = FirstPersonModePlugin.CameraConstants.MinDistance;
+            __instance.m_maxDistance = FirstPersonModePlugin.CameraConstants.MaxDistance;
+            __instance.m_zoomSens = FirstPersonModePlugin.CameraConstants.ZoomSens;
 
             // Default Field Of View value
             __instance.m_fov = 65f;
@@ -186,7 +186,7 @@ public static class GameCameraUpdatePatch
             isFirstPerson = !isFirstPerson;
 
 
-            FirstPersonModePlugin.DynamicPerson.isFirstPerson = isFirstPerson;
+            FirstPersonModePlugin.DynamicPerson.IsFirstPerson = isFirstPerson;
 
             if (isFirstPerson)
             {
@@ -197,13 +197,13 @@ public static class GameCameraUpdatePatch
                 // Jump camera back to prevent auto forcing you back into first person mode.
                 __instance.m_distance = 1.5f;
                 // Exiting first person mode
-                __instance.m_3rdOffset = FirstPersonModePlugin.DynamicPerson.noFP_3rdOffset;
-                __instance.m_fpsOffset = FirstPersonModePlugin.DynamicPerson.noFP_fpsOffset;
+                __instance.m_3rdOffset = FirstPersonModePlugin.DynamicPerson.NoFp3RdOffset;
+                __instance.m_fpsOffset = FirstPersonModePlugin.DynamicPerson.NoFpFPSOffset;
 
                 // Revert to stored constants
-                __instance.m_minDistance = FirstPersonModePlugin.CameraConstants.minDistance;
-                __instance.m_maxDistance = FirstPersonModePlugin.CameraConstants.maxDistance;
-                __instance.m_zoomSens = FirstPersonModePlugin.CameraConstants.zoomSens;
+                __instance.m_minDistance = FirstPersonModePlugin.CameraConstants.MinDistance;
+                __instance.m_maxDistance = FirstPersonModePlugin.CameraConstants.MaxDistance;
+                __instance.m_zoomSens = FirstPersonModePlugin.CameraConstants.ZoomSens;
 
                 // Default Field Of View value
                 __instance.m_fov = 65f;
@@ -220,7 +220,7 @@ public static class GameCameraUpdatePatch
         if (!Functions.ShouldIgnoreAdjustments(localPlayer))
         {
             // Camera adjustments based on person mode
-            if (FirstPersonModePlugin.DynamicPerson.isFirstPerson)
+            if (FirstPersonModePlugin.DynamicPerson.IsFirstPerson)
             {
                 Functions.HandleFirstPersonMode(ref __instance);
             }
@@ -260,12 +260,12 @@ static class UpdateHud_fixshiphud
 {
     private static void Postfix(Hud __instance, Player player)
     {
-        if (FirstPersonModePlugin.firstPersonEnabled.Value != FirstPersonModePlugin.Toggle.On)
+        if (FirstPersonModePlugin.FirstPersonEnabled.Value != FirstPersonModePlugin.Toggle.On)
             return;
         Camera mainCamera = Utils.GetMainCamera();
         if (mainCamera == null)
             return;
-        if (FirstPersonModePlugin.DynamicPerson.isFirstPerson)
+        if (FirstPersonModePlugin.DynamicPerson.IsFirstPerson)
         {
             __instance.m_shipControlsRoot.transform.position = new Vector3(mainCamera.pixelWidth * 0.5f, mainCamera.pixelHeight * 0.2f, 0.0f);
         }
