@@ -1,10 +1,26 @@
-﻿using System.Collections;
-using FirstPersonMode.Util;
+﻿using FirstPersonMode.Util;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 namespace FirstPersonMode;
+
+[HarmonyPatch(typeof(InstanceRenderer), nameof(InstanceRenderer.OnEnable))]
+static class InstanceRendererOnEnablePatch
+{
+    private static readonly int CamCull = Shader.PropertyToID("_CamCull"); // For efficiency, use cached version.
+
+    static void Prefix(InstanceRenderer __instance)
+    {
+        // If the gameobject's parent is grassroot, then it's going to cull when in first person unless we change the material not to
+        // m_frustumCull set to false doesn't seem to work, so we'll just change the material
+        if (__instance.gameObject.transform.parent?.name == "grassroot")
+        {
+            __instance.m_material.SetFloat(CamCull, 0f);
+            // __instance.m_frustumCull = false;
+        }
+    }
+}
 
 [HarmonyPatch(typeof(Character), nameof(Character.SetVisible))]
 public static class CharacterSetVisiblePatch

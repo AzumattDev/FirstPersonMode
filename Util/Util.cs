@@ -92,7 +92,7 @@ public static class Functions
             __instance.transform.position = headPoint + offset;
 
             // Check mouse scroll input
-            if (localPlayer.TakeInput() && Input.GetAxis("Mouse ScrollWheel") < 0) // If scrolling down
+            if (localPlayer.TakeInput() && Input.GetAxis("Mouse ScrollWheel") < 0 && !localPlayer.InPlaceMode()) // If scrolling down
             {
                 __instance.m_minDistance += 2f; // Increment m_minDistance
                 FirstPersonModePlugin.FirstPersonModeLogger.LogDebug("m_minDistance: " + __instance.m_minDistance);
