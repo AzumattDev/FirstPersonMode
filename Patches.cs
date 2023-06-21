@@ -22,6 +22,22 @@ static class InstanceRendererOnEnablePatch
     }
 }
 
+[HarmonyPatch(typeof(Pickable),nameof(Pickable.Awake))]
+static class PickableAwakePatch
+{
+    static void Postfix(Pickable __instance)
+    {
+        // Find each material on the __instance and set _CamCull to 0
+        foreach (var renderer in __instance.GetComponentsInChildren<Renderer>())
+        {
+            foreach (var material in renderer.materials)
+            {
+                material.SetFloat("_CamCull", 0f);
+            }
+        }
+    }
+}
+
 [HarmonyPatch(typeof(Character), nameof(Character.SetVisible))]
 public static class CharacterSetVisiblePatch
 {
