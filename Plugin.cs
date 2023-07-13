@@ -13,10 +13,11 @@ using UnityEngine;
 namespace FirstPersonMode
 {
     [BepInPlugin(ModGUID, ModName, ModVersion)]
+    [BepInDependency("Azumatt.BuildCameraCHE", BepInDependency.DependencyFlags.SoftDependency)]
     public class FirstPersonModePlugin : BaseUnityPlugin
     {
         internal const string ModName = "FirstPersonMode";
-        internal const string ModVersion = "1.1.3";
+        internal const string ModVersion = "1.2.0";
         internal const string Author = "Azumatt";
         private const string ModGUID = Author + "." + ModName;
         private static string ConfigFileName = ModGUID + ".cfg";
@@ -24,8 +25,10 @@ namespace FirstPersonMode
         internal static string ConnectionError = "";
         private readonly Harmony _harmony = new(ModGUID);
 
-        public static readonly ManualLogSource FirstPersonModeLogger =
-            BepInEx.Logging.Logger.CreateLogSource(ModName);
+        public static bool CHEIsLoaded;
+        private Assembly _cheAssembly = null!;
+        public static MethodInfo? CHEInBuildMode;
+        public static readonly ManualLogSource FirstPersonModeLogger = BepInEx.Logging.Logger.CreateLogSource(ModName);
 
         public enum Toggle
         {
@@ -85,6 +88,16 @@ namespace FirstPersonMode
             RaiseFOVHotkey = config("3 - Keyboard Shortcuts", "Raise FOV Shortcut", new KeyboardShortcut(KeyCode.PageUp, KeyCode.LeftShift), "Keyboard Shortcut needed to raise FOV.");
             LowerFOVHotkey = config("3 - Keyboard Shortcuts", "Lower FOV Shortcut", new KeyboardShortcut(KeyCode.PageDown, KeyCode.LeftShift), "Keyboard Shortcut needed to lower FOV.");
 
+            CHEIsLoaded = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("Azumatt.BuildCameraCHE");
+
+
+            if (CHEIsLoaded)
+            {
+                _cheAssembly = BepInEx.Bootstrap.Chainloader.PluginInfos["Azumatt.BuildCameraCHE"].Instance.GetType().Assembly;
+
+                // Get the type for the BuildCameraCHEPlugin, go into the Valheim_Build_Camera namespace, and the Utils class. Get the public method InBuildMode
+                CHEInBuildMode = _cheAssembly.GetType("Valheim_Build_Camera.Utils")?.GetMethod("InBuildMode", BindingFlags.Public | BindingFlags.Static);
+            }
 
             Assembly assembly = Assembly.GetExecutingAssembly();
             _harmony.PatchAll(assembly);

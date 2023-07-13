@@ -22,7 +22,7 @@ static class InstanceRendererOnEnablePatch
     }
 }
 
-[HarmonyPatch(typeof(Pickable),nameof(Pickable.Awake))]
+[HarmonyPatch(typeof(Pickable), nameof(Pickable.Awake))]
 static class PickableAwakePatch
 {
     static void Postfix(Pickable __instance)
@@ -167,6 +167,17 @@ public static class GameCameraUpdatePatch
     private static void Postfix(ref GameCamera __instance, float dt)
     {
         if (FirstPersonModePlugin.FirstPersonEnabled.Value != FirstPersonModePlugin.Toggle.On) return;
+
+
+        if (FirstPersonModePlugin.CHEInBuildMode != null && FirstPersonModePlugin.CHEIsLoaded)
+        {
+            // Invoke the method to check the boolean return value
+            var CHEInBuildModeResult = (bool)FirstPersonModePlugin.CHEInBuildMode.Invoke(null, null);
+            if (CHEInBuildModeResult)
+            {
+                return;
+            }
+        }
 
         if (__instance.m_freeFly)
         {
