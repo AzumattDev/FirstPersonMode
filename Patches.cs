@@ -88,12 +88,14 @@ public static class UpdateVisEquipment_SetHelmetequiped2Nothing
             return;
         }
 
+        if (__instance == null) return;
         if (!__instance.gameObject.GetComponent<Player>())
             return;
         if (__instance.gameObject.GetComponent<Player>() != Player.m_localPlayer)
             return;
         if (___m_currentHelmetItemHash != hash)
             _helmetVisRemoved = false;
+        if (ObjectDB.instance == null) return;
         GameObject itemPrefab = ObjectDB.instance.GetItemPrefab(hash);
         if (!itemPrefab)
             return;

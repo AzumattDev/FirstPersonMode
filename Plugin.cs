@@ -17,7 +17,7 @@ namespace FirstPersonMode
     public class FirstPersonModePlugin : BaseUnityPlugin
     {
         internal const string ModName = "FirstPersonMode";
-        internal const string ModVersion = "1.2.0";
+        internal const string ModVersion = "1.2.1";
         internal const string Author = "Azumatt";
         private const string ModGUID = Author + "." + ModName;
         private static string ConfigFileName = ModGUID + ".cfg";
@@ -198,8 +198,8 @@ namespace FirstPersonMode
 
         private class ConfigurationManagerAttributes
         {
-            [UsedImplicitly] public int? Order;
-            [UsedImplicitly] public bool? Browsable;
+            [UsedImplicitly] public int? Order = null!;
+            [UsedImplicitly] public bool? Browsable = null!;
             [UsedImplicitly] public string Category = null!;
             [UsedImplicitly] public Action<ConfigEntryBase> CustomDrawer = null!;
         }
