@@ -89,6 +89,15 @@ public static class Functions
             //__instance.transform.position = localPlayer.m_head.position + new Vector3(0, 0.2f, 0);
             Vector3 headPoint = localPlayer.GetHeadPoint();
             Vector3 offset = localPlayer.m_eye.transform.rotation * new Vector3(0f, 0.15f, 0.071f);
+            if (Utils.FindChild(localPlayer.transform, "Azu_transform"))
+            {
+                var vis = Utils.FindChild(localPlayer.transform, "Azu_transform");
+                headPoint = Utils.FindChild(vis, "Head").position;
+                //568
+                offset = localPlayer.m_eye.transform.rotation * new Vector3(0f, 0.15f, 0.142f);
+                __instance.m_nearClipPlaneMax = 0.47f;
+            }
+            __instance.m_nearClipPlaneMax = FirstPersonModePlugin.CameraConstants.NearClipPlaneMax;
             __instance.transform.position = headPoint + offset;
 
             // Check mouse scroll input
