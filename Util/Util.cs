@@ -97,7 +97,7 @@ public static class Functions
                 offset = localPlayer.m_eye.transform.rotation * new Vector3(0f, 0.15f, 0.142f);
                 __instance.m_nearClipPlaneMax = 0.47f;
             }
-            __instance.m_nearClipPlaneMax = FirstPersonModePlugin.CameraConstants.NearClipPlaneMax;
+            __instance.m_nearClipPlaneMax = FirstPersonModePlugin.NearClipPlaneMaxConfig.Value;
             __instance.transform.position = headPoint + offset;
 
             // Check mouse scroll input
