@@ -106,8 +106,15 @@ public static class Functions
                 __instance.m_minDistance += 2f; // Increment m_minDistance
                 FirstPersonModePlugin.FirstPersonModeLogger.LogDebug("m_minDistance: " + __instance.m_minDistance);
             }
+            
+            if (ZInput.GetButton("JoyAltKeys") && !Hud.InRadial())
+            {
+                if (ZInput.GetButton("JoyCamZoomOut"))
+                    __instance.m_minDistance += 2f;
+            }
 
             // Update neck twist
+            if (localPlayer.InDodge()) return;
             float deviationAngle = 0f - CalculateDeviationAngle(localPlayer.m_eye.rotation.eulerAngles.y, localPlayer.m_body.rotation.eulerAngles.y);
             if (!(Math.Abs(deviationAngle) > FirstPersonModePlugin.DynamicPerson.MaxDeviation)) return;
             float num = localPlayer.m_body.rotation.eulerAngles.y * 1f;
