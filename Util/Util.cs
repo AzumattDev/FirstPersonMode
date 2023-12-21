@@ -114,7 +114,7 @@ public static class Functions
             }
 
             // Update neck twist
-            if (localPlayer.InDodge()) return;
+            if (localPlayer.InDodge() || localPlayer.m_attached) return;
             float deviationAngle = 0f - CalculateDeviationAngle(localPlayer.m_eye.rotation.eulerAngles.y, localPlayer.m_body.rotation.eulerAngles.y);
             if (!(Math.Abs(deviationAngle) > FirstPersonModePlugin.DynamicPerson.MaxDeviation)) return;
             float num = localPlayer.m_body.rotation.eulerAngles.y * 1f;
