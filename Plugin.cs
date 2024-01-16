@@ -9,6 +9,7 @@ using BepInEx.Logging;
 using HarmonyLib;
 using JetBrains.Annotations;
 using UnityEngine;
+using ServerSync;
 
 namespace FirstPersonMode
 {
@@ -17,13 +18,14 @@ namespace FirstPersonMode
     public class FirstPersonModePlugin : BaseUnityPlugin
     {
         internal const string ModName = "FirstPersonMode";
-        internal const string ModVersion = "1.2.7";
+        internal const string ModVersion = "1.3.0";
         internal const string Author = "Azumatt";
         private const string ModGUID = Author + "." + ModName;
         private static string ConfigFileName = ModGUID + ".cfg";
         private static string ConfigFileFullPath = Paths.ConfigPath + Path.DirectorySeparatorChar + ConfigFileName;
         internal static string ConnectionError = "";
         private readonly Harmony _harmony = new(ModGUID);
+        private static readonly ConfigSync ConfigSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion };
 
         public static bool CHEIsLoaded;
         private Assembly _cheAssembly = null!;
@@ -73,20 +75,24 @@ namespace FirstPersonMode
 
         public void Awake()
         {
+            _serverConfigLocked = config("1 - General", "Lock Configuration", Toggle.On, new ConfigDescription("If on, the configuration is locked and can be changed by server admins only. All Synced With Server configurations will be enforced to the clients.", null, new ConfigurationManagerAttributes() { Order = 8 }));
+            ConfigSync.AddLockingConfigEntry(_serverConfigLocked);
+
             // Config for First Person being enabled
             FirstPersonEnabled = config("1 - Toggles", "Enable First Person", Toggle.On, "If on, First Person is enabled.");
-            NoHeadMode = config("1 - Toggles", "Hide Head", Toggle.Off, "If on, the camera will not use the culling mode and will instead shrink the head to hide it. This method is a bit better overall as your armor isn't see through, but looks a little weird. Headless people always do.");
+            FirstPersonEnforced = config("1 - Toggles", "Enforce First Person", Toggle.Off, "If on, First Person is enforced to always be on. Respects the Enable First Person configuration and both must be on for First Person to be enforced.");
+            NoHeadMode = config("1 - Toggles", "Hide Head", Toggle.Off, "If on, the camera will not use the culling mode and will instead shrink the head to hide it. This method is a bit better overall as your armor isn't see through, but looks a little weird. Headless people always do.", false);
 
             // Default FOV
-            DefaultFOV = config("2 - Camera", "Default FOV", 65.0f, "Default FOV for First Person.");
-            NearClipPlaneMinConfig = config("2 - Camera", "NearClipPlaneMin", 0.17f, "Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.");
-            NearClipPlaneMaxConfig = config("2 - Camera", "NearClipPlaneMax", 0.17f, "Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.");
+            DefaultFOV = config("2 - Camera", "Default FOV", 65.0f, "Default FOV for First Person.", false);
+            NearClipPlaneMinConfig = config("2 - Camera", "NearClipPlaneMin", 0.17f, "Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.", false);
+            NearClipPlaneMaxConfig = config("2 - Camera", "NearClipPlaneMax", 0.17f, "Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.", false);
 
 
             // Hotkeys for turning on FOV and controlling the FOV
-            ToggleFirstPersonHotkey = config("3 - Keyboard Shortcuts", "Toggle First Person Shortcut", new KeyboardShortcut(KeyCode.H, KeyCode.LeftShift), "Keyboard Shortcut needed to toggle First Person.");
-            RaiseFOVHotkey = config("3 - Keyboard Shortcuts", "Raise FOV Shortcut", new KeyboardShortcut(KeyCode.PageUp, KeyCode.LeftShift), "Keyboard Shortcut needed to raise FOV.");
-            LowerFOVHotkey = config("3 - Keyboard Shortcuts", "Lower FOV Shortcut", new KeyboardShortcut(KeyCode.PageDown, KeyCode.LeftShift), "Keyboard Shortcut needed to lower FOV.");
+            ToggleFirstPersonHotkey = config("3 - Keyboard Shortcuts", "Toggle First Person Shortcut", new KeyboardShortcut(KeyCode.H, KeyCode.LeftShift), "Keyboard Shortcut needed to toggle First Person. If FirstPersonMode is enforced, you cannot toggle.", false);
+            RaiseFOVHotkey = config("3 - Keyboard Shortcuts", "Raise FOV Shortcut", new KeyboardShortcut(KeyCode.PageUp, KeyCode.LeftShift), "Keyboard Shortcut needed to raise FOV.", false);
+            LowerFOVHotkey = config("3 - Keyboard Shortcuts", "Lower FOV Shortcut", new KeyboardShortcut(KeyCode.PageDown, KeyCode.LeftShift), "Keyboard Shortcut needed to lower FOV.", false);
 
             CHEIsLoaded = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("Azumatt.BuildCameraCHE");
 
@@ -173,7 +179,9 @@ namespace FirstPersonMode
 
         #region ConfigOptions
 
+        private static ConfigEntry<Toggle> _serverConfigLocked = null!;
         internal static ConfigEntry<Toggle> FirstPersonEnabled = null!;
+        internal static ConfigEntry<Toggle> FirstPersonEnforced = null!;
         internal static ConfigEntry<Toggle> NoHeadMode = null!;
         internal static ConfigEntry<float> DefaultFOV = null!;
         internal static ConfigEntry<KeyboardShortcut> ToggleFirstPersonHotkey = null!;
@@ -183,17 +191,27 @@ namespace FirstPersonMode
         internal static ConfigEntry<float> NearClipPlaneMaxConfig = null!;
 
 
-        private ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description)
+        private ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description,
+            bool synchronizedSetting = true)
         {
-            ConfigEntry<T> configEntry = Config.Bind(group, name, value, description);
+            ConfigDescription extendedDescription =
+                new(
+                    description.Description +
+                    (synchronizedSetting ? " [Synced with Server]" : " [Not Synced with Server]"),
+                    description.AcceptableValues, description.Tags);
+            ConfigEntry<T> configEntry = Config.Bind(group, name, value, extendedDescription);
             //var configEntry = Config.Bind(group, name, value, description);
+
+            SyncedConfigEntry<T> syncedConfigEntry = ConfigSync.AddConfigEntry(configEntry);
+            syncedConfigEntry.SynchronizedConfig = synchronizedSetting;
 
             return configEntry;
         }
 
-        private ConfigEntry<T> config<T>(string group, string name, T value, string description)
+        private ConfigEntry<T> config<T>(string group, string name, T value, string description,
+            bool synchronizedSetting = true)
         {
-            return config(group, name, value, new ConfigDescription(description));
+            return config(group, name, value, new ConfigDescription(description), synchronizedSetting);
         }
 
         private class ConfigurationManagerAttributes

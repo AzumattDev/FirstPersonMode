@@ -196,7 +196,7 @@ public static class GameCameraUpdatePatch
         bool isToggleInitiated = FirstPersonModePlugin.ToggleFirstPersonHotkey.Value.IsKeyDown();
 
         // Scrolling in to first person
-        if (__instance.m_distance <= 1 && !isFirstPerson && !isToggleInitiated)
+        if ((__instance.m_distance <= 1 && !isFirstPerson && !isToggleInitiated) || FirstPersonModePlugin.FirstPersonEnforced.Value == FirstPersonModePlugin.Toggle.On)
         {
             isFirstPerson = true;
             FirstPersonModePlugin.DynamicPerson.IsFirstPerson = true;
@@ -226,7 +226,7 @@ public static class GameCameraUpdatePatch
         }
 
         // Toggling using hotkey
-        if (isToggleInitiated)
+        if (isToggleInitiated && FirstPersonModePlugin.FirstPersonEnforced.Value != FirstPersonModePlugin.Toggle.On)
         {
             isFirstPerson = !isFirstPerson;
 
