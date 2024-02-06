@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using BepInEx;
+using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
@@ -15,10 +16,11 @@ namespace FirstPersonMode
 {
     [BepInPlugin(ModGUID, ModName, ModVersion)]
     [BepInDependency("Azumatt.BuildCameraCHE", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("org.bepinex.plugins.valheim_plus", BepInDependency.DependencyFlags.SoftDependency)]
     public class FirstPersonModePlugin : BaseUnityPlugin
     {
         internal const string ModName = "FirstPersonMode";
-        internal const string ModVersion = "1.3.0";
+        internal const string ModVersion = "1.3.1";
         internal const string Author = "Azumatt";
         private const string ModGUID = Author + "." + ModName;
         private static string ConfigFileName = ModGUID + ".cfg";
@@ -75,6 +77,12 @@ namespace FirstPersonMode
 
         public void Awake()
         {
+            if (Chainloader.PluginInfos.ContainsKey("org.bepinex.plugins.valheim_plus"))
+            {
+                FirstPersonModeLogger.LogWarning("Valheim Plus detected, disabling FirstPersonMode to prevent camera stuttering. Please use the First Person mode in Valheim Plus or disable it to use this mod.");
+                return;
+            }
+
             _serverConfigLocked = config("1 - General", "Lock Configuration", Toggle.On, new ConfigDescription("If on, the configuration is locked and can be changed by server admins only. All Synced With Server configurations will be enforced to the clients.", null, new ConfigurationManagerAttributes() { Order = 8 }));
             ConfigSync.AddLockingConfigEntry(_serverConfigLocked);
 
