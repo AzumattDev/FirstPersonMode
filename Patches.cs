@@ -61,9 +61,10 @@ public static class GameCameraAwakePatch
     private static void Postfix(ref GameCamera __instance)
     {
         if (FirstPersonModePlugin.FirstPersonEnabled.Value != FirstPersonModePlugin.Toggle.On) return;
-        FirstPersonModePlugin.CameraConstants.ZoomSens = __instance.m_zoomSens;
-        FirstPersonModePlugin.CameraConstants.MinDistance = __instance.m_minDistance;
-        FirstPersonModePlugin.CameraConstants.MaxDistance = __instance.m_maxDistance;
+        FirstPersonModePlugin.CachedCameraValues.ZoomSens = __instance.m_zoomSens;
+        FirstPersonModePlugin.CachedCameraValues.MinDistance = __instance.m_minDistance;
+        FirstPersonModePlugin.CachedCameraValues.MaxDistance = __instance.m_maxDistance;
+        FirstPersonModePlugin.CachedCameraValues.FOV = __instance.m_fov;
     }
 }
 
@@ -213,12 +214,12 @@ public static class GameCameraUpdatePatch
             __instance.m_fpsOffset = FirstPersonModePlugin.DynamicPerson.NoFpFPSOffset;
 
             // Revert to stored constants
-            __instance.m_minDistance = FirstPersonModePlugin.CameraConstants.MinDistance;
-            __instance.m_maxDistance = FirstPersonModePlugin.CameraConstants.MaxDistance;
-            __instance.m_zoomSens = FirstPersonModePlugin.CameraConstants.ZoomSens;
+            __instance.m_minDistance = FirstPersonModePlugin.CachedCameraValues.MinDistance;
+            __instance.m_maxDistance = FirstPersonModePlugin.CachedCameraValues.MaxDistance;
+            __instance.m_zoomSens = FirstPersonModePlugin.CachedCameraValues.ZoomSens;
 
             // Default Field Of View value
-            __instance.m_fov = 65f;
+            __instance.m_fov = FirstPersonModePlugin.CachedCameraValues.FOV;
 
             // Normalize head scale
             localPlayer.m_head.localScale = Vector3.one;
@@ -246,9 +247,9 @@ public static class GameCameraUpdatePatch
                 __instance.m_fpsOffset = FirstPersonModePlugin.DynamicPerson.NoFpFPSOffset;
 
                 // Revert to stored constants
-                __instance.m_minDistance = FirstPersonModePlugin.CameraConstants.MinDistance;
-                __instance.m_maxDistance = FirstPersonModePlugin.CameraConstants.MaxDistance;
-                __instance.m_zoomSens = FirstPersonModePlugin.CameraConstants.ZoomSens;
+                __instance.m_minDistance = FirstPersonModePlugin.CachedCameraValues.MinDistance;
+                __instance.m_maxDistance = FirstPersonModePlugin.CachedCameraValues.MaxDistance;
+                __instance.m_zoomSens = FirstPersonModePlugin.CachedCameraValues.ZoomSens;
 
                 // Default Field Of View value
                 __instance.m_fov = 65f;

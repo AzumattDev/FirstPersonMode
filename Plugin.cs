@@ -20,7 +20,7 @@ namespace FirstPersonMode
     public class FirstPersonModePlugin : BaseUnityPlugin
     {
         internal const string ModName = "FirstPersonMode";
-        internal const string ModVersion = "1.3.1";
+        internal const string ModVersion = "1.3.2";
         internal const string Author = "Azumatt";
         private const string ModGUID = Author + "." + ModName;
         private static string ConfigFileName = ModGUID + ".cfg";
@@ -60,7 +60,7 @@ namespace FirstPersonMode
         };
 
         // Struct to hold Camera constants
-        public struct CameraConstants
+        public struct CachedCameraValues
         {
             // Valheim zoom thingy value
             public static float ZoomSens = 10f;
@@ -69,6 +69,7 @@ namespace FirstPersonMode
             public static float MinDistance = 1.0f;
 
             public static float MaxDistance = 8f;
+            public static float FOV = 8f;
 
             // Near Clip Plane max and min
             public static float NearClipPlaneMax = 0.02f;

@@ -34,6 +34,8 @@ public static class Functions
     // Put outside just to clean up
     internal static void SetupFP(ref GameCamera __instance, ref Player localPlayer)
     {
+        FirstPersonModePlugin.CachedCameraValues.MaxDistance = __instance.m_maxDistance;
+        FirstPersonModePlugin.CachedCameraValues.FOV = __instance.m_fov;
         // Save old offsets and then use our own
         FirstPersonModePlugin.DynamicPerson.NoFp3RdOffset = __instance.m_3rdOffset;
         FirstPersonModePlugin.DynamicPerson.NoFpFPSOffset = __instance.m_fpsOffset;
@@ -52,8 +54,8 @@ public static class Functions
         {
             localPlayer.m_head.localScale = Vector3.zero;
             localPlayer.m_eye.localScale = Vector3.zero;
-            __instance.m_nearClipPlaneMax = FirstPersonModePlugin.CameraConstants.NearClipPlaneMax;
-            __instance.m_nearClipPlaneMin = FirstPersonModePlugin.CameraConstants.NearClipPlaneMin;
+            __instance.m_nearClipPlaneMax = FirstPersonModePlugin.CachedCameraValues.NearClipPlaneMax;
+            __instance.m_nearClipPlaneMin = FirstPersonModePlugin.CachedCameraValues.NearClipPlaneMin;
         }
     }
 
