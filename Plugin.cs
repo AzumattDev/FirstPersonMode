@@ -20,7 +20,7 @@ namespace FirstPersonMode
     public class FirstPersonModePlugin : BaseUnityPlugin
     {
         internal const string ModName = "FirstPersonMode";
-        internal const string ModVersion = "1.3.2";
+        internal const string ModVersion = "1.3.3";
         internal const string Author = "Azumatt";
         private const string ModGUID = Author + "." + ModName;
         private static string ConfigFileName = ModGUID + ".cfg";
@@ -57,6 +57,9 @@ namespace FirstPersonMode
             public static Quaternion PlayerRotation = Quaternion.identity;
 
             public static Rigidbody PlayerRigidbody = null!;
+
+            // Static field to store the last target camera position
+            public static Vector3 LastTargetPosition = Vector3.zero;
         };
 
         // Struct to hold Camera constants
@@ -96,6 +99,7 @@ namespace FirstPersonMode
             DefaultFOV = config("2 - Camera", "Default FOV", 65.0f, "Default FOV for First Person.", false);
             NearClipPlaneMinConfig = config("2 - Camera", "NearClipPlaneMin", 0.17f, "Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.", false);
             NearClipPlaneMaxConfig = config("2 - Camera", "NearClipPlaneMax", 0.17f, "Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.", false);
+            OffsetWhenAiming = config("2 - Camera", "OffsetWhenAiming", new Vector3(0.35f, 0.15f, 0.071f), "Adjusts the x offset when aiming with a bow. Higher number = more to the right, lower is more to the left.", false);
 
 
             // Hotkeys for turning on FOV and controlling the FOV
@@ -198,6 +202,7 @@ namespace FirstPersonMode
         internal static ConfigEntry<KeyboardShortcut> LowerFOVHotkey = null!;
         internal static ConfigEntry<float> NearClipPlaneMinConfig = null!;
         internal static ConfigEntry<float> NearClipPlaneMaxConfig = null!;
+        internal static ConfigEntry<Vector3> OffsetWhenAiming = null!;
 
 
         private ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description,

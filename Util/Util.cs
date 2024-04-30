@@ -11,14 +11,12 @@ public static class KeyboardExtensions
     // since KeyboardShortcut.IsPressed and KeyboardShortcut.IsDown behave unintuitively
     public static bool IsKeyDown(this KeyboardShortcut shortcut)
     {
-        return shortcut.MainKey != KeyCode.None && Input.GetKeyDown(shortcut.MainKey) &&
-               shortcut.Modifiers.All(Input.GetKey);
+        return shortcut.MainKey != KeyCode.None && Input.GetKeyDown(shortcut.MainKey) && shortcut.Modifiers.All(Input.GetKey);
     }
 
     public static bool IsKeyHeld(this KeyboardShortcut shortcut)
     {
-        return shortcut.MainKey != KeyCode.None && Input.GetKey(shortcut.MainKey) &&
-               shortcut.Modifiers.All(Input.GetKey);
+        return shortcut.MainKey != KeyCode.None && Input.GetKey(shortcut.MainKey) && shortcut.Modifiers.All(Input.GetKey);
     }
 }
 
@@ -26,8 +24,7 @@ public static class Functions
 {
     internal static bool ShouldIgnoreAdjustments(Player localPlayer)
     {
-        return Chat.instance?.HasFocus() == true || Console.IsVisible() ||
-               InventoryGui.IsVisible() || StoreGui.IsVisible() || Menu.IsVisible() ||
+        return Chat.instance?.HasFocus() == true || Console.IsVisible() || InventoryGui.IsVisible() || StoreGui.IsVisible() || Menu.IsVisible() ||
                Minimap.IsOpen() || localPlayer.InCutscene() || localPlayer.InPlaceMode();
     }
 
@@ -77,10 +74,39 @@ public static class Functions
     {
         // Default game camera behavior
         float minDistance = __instance.m_minDistance;
-        float axis = Input.GetAxis("Mouse ScrollWheel");
+        float axis = ZInput.GetMouseScrollWheel();
+        if (Player.m_debugMode)
+            axis = ScrollReturn(__instance, axis);
         __instance.m_distance -= axis * __instance.m_zoomSens;
         float max = (localPlayer.GetControlledShip() != null) ? __instance.m_maxDistanceBoat : __instance.m_maxDistance;
         __instance.m_distance = Mathf.Clamp(__instance.m_distance, 0f, max);
+    }
+
+    internal static float ScrollReturn(GameCamera cam, float scroll)
+    {
+        if (ZInput.GetKey(KeyCode.LeftShift) && ZInput.GetKey(KeyCode.C) && !Console.IsVisible())
+        {
+            Vector2 mouseDelta = ZInput.GetMouseDelta();
+            EnvMan.instance.m_debugTimeOfDay = true;
+            EnvMan.instance.m_debugTime = (float)(((double)EnvMan.instance.m_debugTime + (double)mouseDelta.y * 0.004999999888241291) % 1.0);
+            if ((double)EnvMan.instance.m_debugTime < 0.0)
+                ++EnvMan.instance.m_debugTime;
+            cam.m_fov += mouseDelta.x * 1f;
+            cam.m_fov = Mathf.Clamp(cam.m_fov, 0.5f, 165f);
+            cam.m_camera.fieldOfView = cam.m_fov;
+            cam.m_skyCamera.fieldOfView = cam.m_fov;
+            if (Player.m_localPlayer && Player.m_localPlayer.IsDebugFlying())
+            {
+                if ((double)scroll > 0.0)
+                    Character.m_debugFlySpeed = (int)Mathf.Clamp((float)Character.m_debugFlySpeed * 1.1f, (float)(Character.m_debugFlySpeed + 1), 300f);
+                else if ((double)scroll < 0.0 && Character.m_debugFlySpeed > 1)
+                    Character.m_debugFlySpeed = (int)Mathf.Min((float)Character.m_debugFlySpeed * 0.9f, (float)(Character.m_debugFlySpeed - 1));
+            }
+
+            scroll = 0.0f;
+        }
+
+        return scroll;
     }
 
     internal static void SetCameraTransform(ref GameCamera __instance, Player localPlayer, float dt)
@@ -88,9 +114,14 @@ public static class Functions
         if (FirstPersonModePlugin.DynamicPerson.IsFirstPerson)
         {
             // Update camera position
-            //__instance.transform.position = localPlayer.m_head.position + new Vector3(0, 0.2f, 0);
             Vector3 headPoint = localPlayer.GetHeadPoint();
             Vector3 offset = localPlayer.m_eye.transform.rotation * new Vector3(0f, 0.15f, 0.071f);
+            if (localPlayer.IsDrawingBow())
+            {
+                // Offset should be different when drawing a bow, it should be more to the right
+                offset = localPlayer.m_eye.transform.rotation * new Vector3(FirstPersonModePlugin.OffsetWhenAiming.Value.x, FirstPersonModePlugin.OffsetWhenAiming.Value.y, FirstPersonModePlugin.OffsetWhenAiming.Value.z);
+            }
+
             if (Utils.FindChild(localPlayer.transform, "Azu_transform"))
             {
                 var vis = Utils.FindChild(localPlayer.transform, "Azu_transform");
@@ -99,19 +130,21 @@ public static class Functions
                 offset = localPlayer.m_eye.transform.rotation * new Vector3(0f, 0.15f, 0.142f);
                 __instance.m_nearClipPlaneMax = 0.47f;
             }
+
             __instance.m_nearClipPlaneMax = FirstPersonModePlugin.NearClipPlaneMaxConfig.Value;
-            __instance.transform.position = headPoint + offset;
+            Vector3 currentPosition = __instance.transform.position;
+            //__instance.transform.position = headPoint + offset;
+            __instance.transform.position = Vector3.Lerp(currentPosition, headPoint + offset, 2f);
 
             // Check mouse scroll input
             if (localPlayer.TakeInput() && Input.GetAxis("Mouse ScrollWheel") < 0 && !localPlayer.InPlaceMode()) // If scrolling down
             {
                 __instance.m_minDistance += 2f; // Increment m_minDistance
-                FirstPersonModePlugin.FirstPersonModeLogger.LogDebug("m_minDistance: " + __instance.m_minDistance);
             }
-            
+
             if (ZInput.GetButton("JoyAltKeys") && !Hud.InRadial())
             {
-                if (ZInput.GetButton("JoyCamZoomOut"))
+                if (__instance.m_camZoomToggle && ZInput.GetButton("JoyCamZoom"))
                     __instance.m_minDistance += 2f;
             }
 
