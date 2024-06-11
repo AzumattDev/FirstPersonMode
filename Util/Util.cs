@@ -74,12 +74,13 @@ public static class Functions
     {
         // Default game camera behavior
         float minDistance = __instance.m_minDistance;
-        float axis = ZInput.GetMouseScrollWheel();
+        //float axis = ZInput.GetMouseScrollWheel();
+        float axis = Input.GetAxis("Mouse ScrollWheel");;
         if (Player.m_debugMode)
             axis = ScrollReturn(__instance, axis);
-        __instance.m_distance -= axis * __instance.m_zoomSens;
+        __instance.m_distance -= (axis/3) * __instance.m_zoomSens;
         float max = (localPlayer.GetControlledShip() != null) ? __instance.m_maxDistanceBoat : __instance.m_maxDistance;
-        __instance.m_distance = Mathf.Clamp(__instance.m_distance, 0f, max);
+        __instance.m_distance = Mathf.Clamp(Mathf.Lerp(__instance.m_distance, Mathf.Clamp(__instance.m_distance, 0f, max), 0.1f), 0f, max);
     }
 
     internal static float ScrollReturn(GameCamera cam, float scroll)
@@ -134,7 +135,7 @@ public static class Functions
             __instance.m_nearClipPlaneMax = FirstPersonModePlugin.NearClipPlaneMaxConfig.Value;
             Vector3 currentPosition = __instance.transform.position;
             //__instance.transform.position = headPoint + offset;
-            __instance.transform.position = Vector3.Lerp(currentPosition, headPoint + offset, 2f);
+            __instance.transform.position = Vector3.Lerp(currentPosition, headPoint + offset, 1f);
 
             // Check mouse scroll input
             if (localPlayer.TakeInput() && Input.GetAxis("Mouse ScrollWheel") < 0 && !localPlayer.InPlaceMode()) // If scrolling down

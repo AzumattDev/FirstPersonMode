@@ -8,7 +8,7 @@ namespace FirstPersonMode;
 [HarmonyPatch(typeof(InstanceRenderer), nameof(InstanceRenderer.OnEnable))]
 static class InstanceRendererOnEnablePatch
 {
-    private static readonly int CamCull = Shader.PropertyToID("_CamCull"); // For efficiency, use cached version.
+    internal static readonly int CamCull = Shader.PropertyToID("_CamCull"); // For efficiency, use cached version.
 
     static void Prefix(InstanceRenderer __instance)
     {
@@ -32,7 +32,7 @@ static class PickableAwakePatch
         {
             foreach (var material in renderer.materials)
             {
-                material.SetFloat("_CamCull", 0f);
+                material.SetFloat(InstanceRendererOnEnablePatch.CamCull, 0f);
             }
         }
     }
@@ -45,12 +45,9 @@ public static class CharacterSetVisiblePatch
     {
         if (FirstPersonModePlugin.FirstPersonEnabled.Value != FirstPersonModePlugin.Toggle.On) return true;
 
-        if (__instance.m_lodGroup == null || __instance.m_lodVisible == visible ||
-            (__instance.IsPlayer() && !visible)) return false;
+        if (__instance.m_lodGroup == null || __instance.m_lodVisible == visible || (__instance.IsPlayer() && !visible)) return false;
         __instance.m_lodVisible = visible;
-        __instance.m_lodGroup.localReferencePoint = __instance.m_lodVisible
-            ? __instance.m_originalLocalRef
-            : new Vector3(999999f, 999999f, 999999f);
+        __instance.m_lodGroup.localReferencePoint = __instance.m_lodVisible ? __instance.m_originalLocalRef : new Vector3(999999f, 999999f, 999999f);
         return false;
     }
 }
@@ -74,15 +71,7 @@ public static class UpdateVisEquipment_SetHelmetequiped2Nothing
     private static bool _helmetVisRemovedPrefabrestored;
     private static bool _helmetVisRemoved;
 
-    private static void Prefix(
-        VisEquipment __instance,
-        bool ___m_isPlayer,
-        int hash,
-        int hairHash,
-        ref int ___m_currentHelmetItemHash,
-        ref GameObject ___m_helmetItemInstance,
-        ref bool ___m_helmetHideHair,
-        ref Transform ___m_helmet)
+    private static void Prefix(VisEquipment __instance, bool ___m_isPlayer, int hash, int hairHash, ref int ___m_currentHelmetItemHash, ref GameObject ___m_helmetItemInstance, ref bool ___m_helmetHideHair, ref Transform ___m_helmet)
     {
         if (FirstPersonModePlugin.NoHeadMode.Value == FirstPersonModePlugin.Toggle.On)
         {
@@ -127,15 +116,7 @@ public static class UpdateVisEquipment_SetHelmetequiped2Nothing
     }
 
 
-    private static void Postfix(
-        VisEquipment __instance,
-        bool ___m_isPlayer,
-        int hash,
-        int hairHash,
-        ref int ___m_currentHelmetItemHash,
-        ref GameObject ___m_helmetItemInstance,
-        ref bool ___m_helmetHideHair,
-        ref Transform ___m_helmet)
+    private static void Postfix(VisEquipment __instance, bool ___m_isPlayer, int hash, int hairHash, ref int ___m_currentHelmetItemHash, ref GameObject ___m_helmetItemInstance, ref bool ___m_helmetHideHair, ref Transform ___m_helmet)
     {
         if (FirstPersonModePlugin.NoHeadMode.Value == FirstPersonModePlugin.Toggle.On)
         {
@@ -161,6 +142,87 @@ public static class UpdateVisEquipment_SetHelmetequiped2Nothing
         }
 
         _helmetVisRemovedPrefabrestored = true;
+    }
+}
+
+[HarmonyPatch(typeof(VisEquipment), nameof(VisEquipment.SetShoulderEquipped))]
+static class VisEquipmentSetShoulderEquippedPatch
+{
+    private static bool _shoulderVisRemovedPrefabrestored;
+    private static bool _shoulderVisRemoved;
+
+    static void Prefix(VisEquipment __instance, int hash, int variant, ref int ___m_currentShoulderItemHash)
+    {
+        if (FirstPersonModePlugin.NoHeadMode.Value == FirstPersonModePlugin.Toggle.On)
+        {
+            return;
+        }
+
+        if (__instance == null) return;
+        if (!__instance.gameObject.GetComponent<Player>())
+            return;
+        if (__instance.gameObject.GetComponent<Player>() != Player.m_localPlayer)
+            return;
+        if (___m_currentShoulderItemHash != hash)
+            _shoulderVisRemoved = false;
+        if (ObjectDB.instance == null) return;
+        GameObject itemPrefab = ObjectDB.instance.GetItemPrefab(hash);
+        if (!itemPrefab)
+            return;
+        if (itemPrefab.name != "CapeAsh") return;
+        if (FirstPersonModePlugin.DynamicPerson.IsFirstPerson && !_shoulderVisRemoved)
+        {
+            int childCount = itemPrefab.transform.childCount;
+            for (int index = 0; index < childCount; ++index)
+            {
+                Transform child = itemPrefab.transform.GetChild(index);
+                if (child.gameObject.name is "attach" or "attach_skin")
+                {
+                    foreach (Renderer componentsInChild in child.gameObject.GetComponentsInChildren<Renderer>())
+                        componentsInChild.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
+                }
+            }
+
+            ___m_currentShoulderItemHash = -1;
+            _shoulderVisRemoved = true;
+            _shoulderVisRemovedPrefabrestored = false;
+        }
+        else
+        {
+            if (FirstPersonModePlugin.DynamicPerson.IsFirstPerson || !_shoulderVisRemoved)
+                return;
+            _shoulderVisRemoved = false;
+            ___m_currentShoulderItemHash = -1;
+        }
+    }
+    
+    private static void Postfix(VisEquipment __instance, int hash, int variant, ref int ___m_currentShoulderItemHash)
+    {
+        if (FirstPersonModePlugin.NoHeadMode.Value == FirstPersonModePlugin.Toggle.On)
+        {
+            return;
+        }
+
+        if (!__instance.gameObject.GetComponent<Player>() || _shoulderVisRemovedPrefabrestored)
+            return;
+        if (__instance.gameObject.GetComponent<Player>() != Player.m_localPlayer)
+            return;
+        GameObject itemPrefab = ObjectDB.instance.GetItemPrefab(hash);
+        if (!itemPrefab)
+            return;
+        if (itemPrefab.name != "CapeAsh") return;
+        int childCount = itemPrefab.transform.childCount;
+        for (int index = 0; index < childCount; ++index)
+        {
+            Transform child = itemPrefab.transform.GetChild(index);
+            if (child.gameObject.name is "attach" or "attach_skin")
+            {
+                foreach (Renderer componentsInChild in child.gameObject.GetComponentsInChildren<Renderer>())
+                    componentsInChild.shadowCastingMode = ShadowCastingMode.On;
+            }
+        }
+
+        _shoulderVisRemovedPrefabrestored = true;
     }
 }
 
@@ -281,12 +343,27 @@ public static class GameCameraUpdatePatch
         {
             __instance.transform.LookAt(localPlayer.GetRagdoll().GetAverageBodyPosition());
         }
+        else if (localPlayer.IsAttached() && localPlayer.GetAttachCameraPoint() != null)
+        {
+            Transform attachCameraPoint = localPlayer.GetAttachCameraPoint();
+            __instance.transform.position = attachCameraPoint.position;
+            __instance.transform.rotation = attachCameraPoint.rotation;
+        }
         else
         {
             Functions.SetCameraTransform(ref __instance, localPlayer, dt);
         }
 
         __instance.UpdateCameraShake(dt);
+    }
+}
+
+[HarmonyPatch(typeof(Humanoid), nameof(Humanoid.UseMeleeCamera))]
+static class HumanoidUseMeleeCameraPatch
+{
+    static void Postfix(Humanoid __instance, ref bool __result)
+    {
+        __result = true;
     }
 }
 
