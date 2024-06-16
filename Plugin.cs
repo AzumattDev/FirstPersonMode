@@ -20,7 +20,7 @@ namespace FirstPersonMode
     public class FirstPersonModePlugin : BaseUnityPlugin
     {
         internal const string ModName = "FirstPersonMode";
-        internal const string ModVersion = "1.3.4";
+        internal const string ModVersion = "1.3.5";
         internal const string Author = "Azumatt";
         private const string ModGUID = Author + "." + ModName;
         private static string ConfigFileName = ModGUID + ".cfg";
@@ -100,7 +100,9 @@ namespace FirstPersonMode
             NearClipPlaneMinConfig = config("2 - Camera", "NearClipPlaneMin", 0.17f, "Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.", false);
             NearClipPlaneMaxConfig = config("2 - Camera", "NearClipPlaneMax", 0.17f, "Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.", false);
             OffsetWhenAiming = config("2 - Camera", "OffsetWhenAiming", new Vector3(0.35f, 0.15f, 0.071f), "Adjusts the x offset when aiming with a bow. Higher number = more to the right, lower is more to the left.", false);
-
+            MaxDeviation = config("2 - Camera", "Max Deviation", 40f, "Max deviation angle before rotating the player. This is essentially the same thing as a 'Deadzone' for the camera. Similar to how a controller has a deadzone for the joystick.", false);
+            MaxDeviation.SettingChanged += (sender, args) => DynamicPerson.MaxDeviation = MaxDeviation.Value;
+            SlerpMult = config("2 - Camera", "Slerp Multiplier", 20f, "Multiplier for the slerp value. Higher values will make the camera move faster (The player's rotation will match the target rotation more quickly. This can make the rotation feel more immediate but might appear less smooth if the change is too rapid.), lower values will make the camera move slower. (The player's rotation will take longer to match the target rotation. This will make the transition appear smoother but might feel laggy if too slow.)", false);
 
             // Hotkeys for turning on FOV and controlling the FOV
             ToggleFirstPersonHotkey = config("3 - Keyboard Shortcuts", "Toggle First Person Shortcut", new KeyboardShortcut(KeyCode.H, KeyCode.LeftShift), "Keyboard Shortcut needed to toggle First Person. If FirstPersonMode is enforced, you cannot toggle.", false);
@@ -203,16 +205,13 @@ namespace FirstPersonMode
         internal static ConfigEntry<float> NearClipPlaneMinConfig = null!;
         internal static ConfigEntry<float> NearClipPlaneMaxConfig = null!;
         internal static ConfigEntry<Vector3> OffsetWhenAiming = null!;
+        internal static ConfigEntry<float> MaxDeviation = null!;
+        internal static ConfigEntry<float> SlerpMult = null!;
 
 
-        private ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description,
-            bool synchronizedSetting = true)
+        private ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description, bool synchronizedSetting = true)
         {
-            ConfigDescription extendedDescription =
-                new(
-                    description.Description +
-                    (synchronizedSetting ? " [Synced with Server]" : " [Not Synced with Server]"),
-                    description.AcceptableValues, description.Tags);
+            ConfigDescription extendedDescription = new(description.Description + (synchronizedSetting ? " [Synced with Server]" : " [Not Synced with Server]"), description.AcceptableValues, description.Tags);
             ConfigEntry<T> configEntry = Config.Bind(group, name, value, extendedDescription);
             //var configEntry = Config.Bind(group, name, value, description);
 
@@ -222,8 +221,7 @@ namespace FirstPersonMode
             return configEntry;
         }
 
-        private ConfigEntry<T> config<T>(string group, string name, T value, string description,
-            bool synchronizedSetting = true)
+        private ConfigEntry<T> config<T>(string group, string name, T value, string description, bool synchronizedSetting = true)
         {
             return config(group, name, value, new ConfigDescription(description), synchronizedSetting);
         }

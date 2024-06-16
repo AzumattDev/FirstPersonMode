@@ -12,63 +12,60 @@
 `1 - General`
 
 Lock Configuration [Synced with Server]
-
-* If on, the configuration is locked and can be changed by server admins only. All Synced With Server configurations
-  will be enforced to the clients.
+* If on, the configuration is locked and can be changed by server admins only. All Synced With Server configurations will be enforced to the clients.
     * Default Value: On
 
 `1 - Toggles`
 
 Enable First Person [Synced with Server]
-
 * If on, First Person is enabled.
     * Default Value: On
 
 Enforce First Person [Synced with Server]
-
-* If on, First Person is enforced to always be on. Respects the Enable First Person configuration and both must be on
-  for First Person to be enforced.
+* If on, First Person is enforced to always be on. Respects the Enable First Person configuration and both must be on for First Person to be enforced.
     * Default Value: Off
 
 Hide Head [Not Synced with Server]
-
-* If on, the camera will not use the culling mode and will instead shrink the head to hide it. This method is a bit
-  better overall as your armor isn't see through, but looks a little weird. Headless people always do.
+* If on, the camera will not use the culling mode and will instead shrink the head to hide it. This method is a bit better overall as your armor isn't see through, but looks a little weird. Headless people always do.
     * Default Value: Off
 
 `2 - Camera`
 
 Default FOV [Not Synced with Server]
-
 * Default FOV for First Person.
     * Default Value: 65
 
 NearClipPlaneMin [Not Synced with Server]
-
-* Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility;
-  too high might clip nearby objects.
+* Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.
     * Default Value: 0.17
 
 NearClipPlaneMax [Not Synced with Server]
-
-* Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility;
-  too high might clip nearby objects.
+* Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.
     * Default Value: 0.17
+
+OffsetWhenAiming [Not Synced with Server]
+* Adjusts the x offset when aiming with a bow. Higher number = more to the right, lower is more to the left.
+    * Default Value: {"x":0.3499999940395355,"y":0.15000000596046449,"z":0.07100000232458115}
+
+Max Deviation [Not Synced with Server]
+* Max deviation angle before rotating the player. This is essentially the same thing as a 'Deadzone' for the camera. Similar to how a controller has a deadzone for the joystick.
+    * Default Value: 40
+
+Slerp Multiplier [Not Synced with Server]
+* Multiplier for the slerp value. Higher values will make the camera move faster (The player's rotation will match the target rotation more quickly. This can make the rotation feel more immediate but might appear less smooth if the change is too rapid.), lower values will make the camera move slower. (The player's rotation will take longer to match the target rotation. This will make the transition appear smoother but might feel laggy if too slow.)
+    * Default Value: 20
 
 `3 - Keyboard Shortcuts`
 
 Toggle First Person Shortcut [Not Synced with Server]
-
 * Keyboard Shortcut needed to toggle First Person. If FirstPersonMode is enforced, you cannot toggle.
     * Default Value: H + LeftShift
 
 Raise FOV Shortcut [Not Synced with Server]
-
 * Keyboard Shortcut needed to raise FOV.
     * Default Value: PageUp + LeftShift
 
 Lower FOV Shortcut [Not Synced with Server]
-
 * Keyboard Shortcut needed to lower FOV.
     * Default Value: PageDown + LeftShift
 

@@ -158,7 +158,7 @@ public static class Functions
             var rotation = localPlayer.m_body.rotation;
             FirstPersonModePlugin.DynamicPerson.PlayerRotation = Quaternion.Euler(rotation.eulerAngles.x, num, rotation.eulerAngles.z);
             FirstPersonModePlugin.DynamicPerson.PlayerRigidbody = localPlayer.m_body;
-            FirstPersonModePlugin.DynamicPerson.PlayerRigidbody.rotation = FirstPersonModePlugin.DynamicPerson.PlayerRotation;
+            FirstPersonModePlugin.DynamicPerson.PlayerRigidbody.rotation = Quaternion.Slerp( FirstPersonModePlugin.DynamicPerson.PlayerRigidbody.rotation,  FirstPersonModePlugin.DynamicPerson.PlayerRotation, dt * FirstPersonModePlugin.SlerpMult.Value);
         }
         else
         {
