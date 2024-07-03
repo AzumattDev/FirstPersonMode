@@ -195,7 +195,7 @@ static class VisEquipmentSetShoulderEquippedPatch
             ___m_currentShoulderItemHash = -1;
         }
     }
-    
+
     private static void Postfix(VisEquipment __instance, int hash, int variant, ref int ___m_currentShoulderItemHash)
     {
         if (FirstPersonModePlugin.NoHeadMode.Value == FirstPersonModePlugin.Toggle.On)
@@ -363,7 +363,8 @@ static class HumanoidUseMeleeCameraPatch
 {
     static void Postfix(Humanoid __instance, ref bool __result)
     {
-        __result = true;
+        if (__instance == Player.m_localPlayer && FirstPersonModePlugin.CenterBehindPlayer.Value == FirstPersonModePlugin.Toggle.On)
+            __result = true;
     }
 }
 

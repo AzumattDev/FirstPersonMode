@@ -20,7 +20,7 @@ namespace FirstPersonMode
     public class FirstPersonModePlugin : BaseUnityPlugin
     {
         internal const string ModName = "FirstPersonMode";
-        internal const string ModVersion = "1.3.5";
+        internal const string ModVersion = "1.3.6";
         internal const string Author = "Azumatt";
         private const string ModGUID = Author + "." + ModName;
         private static string ConfigFileName = ModGUID + ".cfg";
@@ -94,6 +94,7 @@ namespace FirstPersonMode
             FirstPersonEnabled = config("1 - Toggles", "Enable First Person", Toggle.On, "If on, First Person is enabled.");
             FirstPersonEnforced = config("1 - Toggles", "Enforce First Person", Toggle.Off, "If on, First Person is enforced to always be on. Respects the Enable First Person configuration and both must be on for First Person to be enforced.");
             NoHeadMode = config("1 - Toggles", "Hide Head", Toggle.Off, "If on, the camera will not use the culling mode and will instead shrink the head to hide it. This method is a bit better overall as your armor isn't see through, but looks a little weird. Headless people always do.", false);
+            CenterBehindPlayer = config("1 - Toggles", "Center Behind Player", Toggle.Off, "If on, the camera will center behind the player when not in First Person. This is useful for people who want to play in third person but want the camera to be centered behind the player and not a little offset like vanilla has it.", false);
 
             // Default FOV
             DefaultFOV = config("2 - Camera", "Default FOV", 65.0f, "Default FOV for First Person.", false);
@@ -198,6 +199,7 @@ namespace FirstPersonMode
         internal static ConfigEntry<Toggle> FirstPersonEnabled = null!;
         internal static ConfigEntry<Toggle> FirstPersonEnforced = null!;
         internal static ConfigEntry<Toggle> NoHeadMode = null!;
+        internal static ConfigEntry<Toggle> CenterBehindPlayer = null!;
         internal static ConfigEntry<float> DefaultFOV = null!;
         internal static ConfigEntry<KeyboardShortcut> ToggleFirstPersonHotkey = null!;
         internal static ConfigEntry<KeyboardShortcut> RaiseFOVHotkey = null!;
