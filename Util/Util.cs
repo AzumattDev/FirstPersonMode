@@ -145,7 +145,7 @@ public static class Functions
 
             if (ZInput.GetButton("JoyAltKeys") && !Hud.InRadial())
             {
-                if (__instance.m_camZoomToggle && ZInput.GetButton("JoyCamZoom"))
+                if (__instance.m_camZoomToggle && ZInput.GetButton("JoyCamZoomOut"))
                     __instance.m_minDistance += 2f;
             }
 
