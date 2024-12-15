@@ -25,26 +25,36 @@ public static class Functions
     internal static bool ShouldIgnoreAdjustments(Player localPlayer)
     {
         return Chat.instance?.HasFocus() == true || Console.IsVisible() || InventoryGui.IsVisible() || StoreGui.IsVisible() || Menu.IsVisible() ||
-               Minimap.IsOpen() || localPlayer.InCutscene() || localPlayer.InPlaceMode();
+               Minimap.IsOpen() || localPlayer.InCutscene() || localPlayer.InPlaceMode() || IsInAEM();
     }
 
-    // Put outside just to clean up
+    public static bool IsInAEM()
+    {
+        return PPCompat.IsInAEM;
+    }
+
+    public static bool IsInFirstPersonMode()
+    {
+        return FirstPersonModePlugin.DynamicPerson.IsFirstPerson;
+    }
+
+
     internal static void SetupFP(ref GameCamera __instance, ref Player localPlayer)
     {
         FirstPersonModePlugin.CachedCameraValues.MaxDistance = __instance.m_maxDistance;
         FirstPersonModePlugin.CachedCameraValues.FOV = __instance.m_fov;
-        // Save old offsets and then use our own
+
         FirstPersonModePlugin.DynamicPerson.NoFp3RdOffset = __instance.m_3rdOffset;
         FirstPersonModePlugin.DynamicPerson.NoFpFPSOffset = __instance.m_fpsOffset;
         __instance.m_3rdOffset = Vector3.zero;
         __instance.m_fpsOffset = Vector3.zero;
-        // Set the camera stuff to 0 or our new value
+
         __instance.m_minDistance = 0;
         __instance.m_maxDistance = 0.0f;
         __instance.m_zoomSens = 0;
         __instance.m_nearClipPlaneMax = FirstPersonModePlugin.NearClipPlaneMaxConfig.Value;
         __instance.m_nearClipPlaneMin = FirstPersonModePlugin.NearClipPlaneMinConfig.Value;
-        // What Field Of View value, default is 65
+        // Default is 65
         __instance.m_fov = FirstPersonModePlugin.DefaultFOV.Value;
         // Make head stuff have no size, same method as mounting legs disappear
         if (FirstPersonModePlugin.NoHeadMode.Value == FirstPersonModePlugin.Toggle.On)
@@ -75,10 +85,10 @@ public static class Functions
         // Default game camera behavior
         float minDistance = __instance.m_minDistance;
         //float axis = ZInput.GetMouseScrollWheel();
-        float axis = Input.GetAxis("Mouse ScrollWheel");;
+        float axis = Input.GetAxis("Mouse ScrollWheel");
         if (Player.m_debugMode)
             axis = ScrollReturn(__instance, axis);
-        __instance.m_distance -= (axis/3) * __instance.m_zoomSens;
+        __instance.m_distance -= (axis / 3) * __instance.m_zoomSens;
         float max = (localPlayer.GetControlledShip() != null) ? __instance.m_maxDistanceBoat : __instance.m_maxDistance;
         __instance.m_distance = Mathf.Clamp(Mathf.Lerp(__instance.m_distance, Mathf.Clamp(__instance.m_distance, 0f, max), 0.1f), 0f, max);
     }
@@ -89,8 +99,8 @@ public static class Functions
         {
             Vector2 mouseDelta = ZInput.GetMouseDelta();
             EnvMan.instance.m_debugTimeOfDay = true;
-            EnvMan.instance.m_debugTime = (float)(((double)EnvMan.instance.m_debugTime + (double)mouseDelta.y * 0.004999999888241291) % 1.0);
-            if ((double)EnvMan.instance.m_debugTime < 0.0)
+            EnvMan.instance.m_debugTime = (float)((EnvMan.instance.m_debugTime + mouseDelta.y * 0.004999999888241291) % 1.0);
+            if (EnvMan.instance.m_debugTime < 0.0)
                 ++EnvMan.instance.m_debugTime;
             cam.m_fov += mouseDelta.x * 1f;
             cam.m_fov = Mathf.Clamp(cam.m_fov, 0.5f, 165f);
@@ -98,10 +108,10 @@ public static class Functions
             cam.m_skyCamera.fieldOfView = cam.m_fov;
             if (Player.m_localPlayer && Player.m_localPlayer.IsDebugFlying())
             {
-                if ((double)scroll > 0.0)
-                    Character.m_debugFlySpeed = (int)Mathf.Clamp((float)Character.m_debugFlySpeed * 1.1f, (float)(Character.m_debugFlySpeed + 1), 300f);
-                else if ((double)scroll < 0.0 && Character.m_debugFlySpeed > 1)
-                    Character.m_debugFlySpeed = (int)Mathf.Min((float)Character.m_debugFlySpeed * 0.9f, (float)(Character.m_debugFlySpeed - 1));
+                if (scroll > 0.0)
+                    Character.m_debugFlySpeed = (int)Mathf.Clamp(Character.m_debugFlySpeed * 1.1f, Character.m_debugFlySpeed + 1, 300f);
+                else if (scroll < 0.0 && Character.m_debugFlySpeed > 1)
+                    Character.m_debugFlySpeed = (int)Mathf.Min(Character.m_debugFlySpeed * 0.9f, Character.m_debugFlySpeed - 1);
             }
 
             scroll = 0.0f;
@@ -112,7 +122,7 @@ public static class Functions
 
     internal static void SetCameraTransform(ref GameCamera __instance, Player localPlayer, float dt)
     {
-        if (FirstPersonModePlugin.DynamicPerson.IsFirstPerson)
+        if (IsInFirstPersonMode())
         {
             // Update camera position
             Vector3 headPoint = localPlayer.GetHeadPoint();
@@ -120,7 +130,8 @@ public static class Functions
             if (localPlayer.IsDrawingBow())
             {
                 // Offset should be different when drawing a bow, it should be more to the right
-                offset = localPlayer.m_eye.transform.rotation * new Vector3(FirstPersonModePlugin.OffsetWhenAiming.Value.x, FirstPersonModePlugin.OffsetWhenAiming.Value.y, FirstPersonModePlugin.OffsetWhenAiming.Value.z);
+                // offset = localPlayer.m_eye.transform.rotation * new Vector3(FirstPersonModePlugin.OffsetWhenAiming.Value.x, FirstPersonModePlugin.OffsetWhenAiming.Value.y, FirstPersonModePlugin.OffsetWhenAiming.Value.z);
+                offset = new Vector3(0, 0.2f, 0);
             }
 
             if (Utils.FindChild(localPlayer.transform, "Azu_transform"))
@@ -158,7 +169,7 @@ public static class Functions
             var rotation = localPlayer.m_body.rotation;
             FirstPersonModePlugin.DynamicPerson.PlayerRotation = Quaternion.Euler(rotation.eulerAngles.x, num, rotation.eulerAngles.z);
             FirstPersonModePlugin.DynamicPerson.PlayerRigidbody = localPlayer.m_body;
-            FirstPersonModePlugin.DynamicPerson.PlayerRigidbody.rotation = Quaternion.Slerp( FirstPersonModePlugin.DynamicPerson.PlayerRigidbody.rotation,  FirstPersonModePlugin.DynamicPerson.PlayerRotation, dt * FirstPersonModePlugin.SlerpMult.Value);
+            FirstPersonModePlugin.DynamicPerson.PlayerRigidbody.rotation = Quaternion.Slerp(FirstPersonModePlugin.DynamicPerson.PlayerRigidbody.rotation, FirstPersonModePlugin.DynamicPerson.PlayerRotation, dt * FirstPersonModePlugin.SlerpMult.Value);
         }
         else
         {

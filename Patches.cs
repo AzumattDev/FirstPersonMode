@@ -89,7 +89,7 @@ public static class UpdateVisEquipment_SetHelmetequiped2Nothing
         GameObject itemPrefab = ObjectDB.instance.GetItemPrefab(hash);
         if (!itemPrefab)
             return;
-        if (FirstPersonModePlugin.DynamicPerson.IsFirstPerson && !_helmetVisRemoved)
+        if (Functions.IsInFirstPersonMode() && !_helmetVisRemoved)
         {
             int childCount = itemPrefab.transform.childCount;
             for (int index = 0; index < childCount; ++index)
@@ -108,7 +108,7 @@ public static class UpdateVisEquipment_SetHelmetequiped2Nothing
         }
         else
         {
-            if (FirstPersonModePlugin.DynamicPerson.IsFirstPerson || !_helmetVisRemoved)
+            if (Functions.IsInFirstPersonMode() || !_helmetVisRemoved)
                 return;
             _helmetVisRemoved = false;
             ___m_currentHelmetItemHash = -1;
@@ -170,7 +170,7 @@ static class VisEquipmentSetShoulderEquippedPatch
         if (!itemPrefab)
             return;
         if (itemPrefab.name != "CapeAsh") return;
-        if (FirstPersonModePlugin.DynamicPerson.IsFirstPerson && !_shoulderVisRemoved)
+        if (Functions.IsInFirstPersonMode() && !_shoulderVisRemoved)
         {
             int childCount = itemPrefab.transform.childCount;
             for (int index = 0; index < childCount; ++index)
@@ -189,7 +189,7 @@ static class VisEquipmentSetShoulderEquippedPatch
         }
         else
         {
-            if (FirstPersonModePlugin.DynamicPerson.IsFirstPerson || !_shoulderVisRemoved)
+            if (Functions.IsInFirstPersonMode() || !_shoulderVisRemoved)
                 return;
             _shoulderVisRemoved = false;
             ___m_currentShoulderItemHash = -1;
@@ -255,7 +255,7 @@ public static class GameCameraUpdatePatch
 
         if (localPlayer == null) return;
 
-        bool isFirstPerson = FirstPersonModePlugin.DynamicPerson.IsFirstPerson;
+        bool isFirstPerson = Functions.IsInFirstPersonMode();
         bool isToggleInitiated = FirstPersonModePlugin.ToggleFirstPersonHotkey.Value.IsKeyDown();
 
         // Scrolling in to first person
@@ -328,7 +328,7 @@ public static class GameCameraUpdatePatch
         if (!Functions.ShouldIgnoreAdjustments(localPlayer))
         {
             // Camera adjustments based on person mode
-            if (FirstPersonModePlugin.DynamicPerson.IsFirstPerson)
+            if (Functions.IsInFirstPersonMode())
             {
                 Functions.HandleFirstPersonMode(ref __instance);
             }
@@ -389,7 +389,7 @@ static class UpdateHud_fixshiphud
         Camera mainCamera = Utils.GetMainCamera();
         if (mainCamera == null)
             return;
-        if (FirstPersonModePlugin.DynamicPerson.IsFirstPerson)
+        if (Functions.IsInFirstPersonMode())
         {
             __instance.m_shipControlsRoot.transform.position = new Vector3(mainCamera.pixelWidth * 0.5f, mainCamera.pixelHeight * 0.2f, 0.0f);
         }

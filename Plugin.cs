@@ -7,6 +7,7 @@ using BepInEx;
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using FirstPersonMode.Util;
 using HarmonyLib;
 using JetBrains.Annotations;
 using UnityEngine;
@@ -20,19 +21,20 @@ namespace FirstPersonMode
     public class FirstPersonModePlugin : BaseUnityPlugin
     {
         internal const string ModName = "FirstPersonMode";
-        internal const string ModVersion = "1.3.6";
+        internal const string ModVersion = "1.3.8";
         internal const string Author = "Azumatt";
         private const string ModGUID = Author + "." + ModName;
         private static string ConfigFileName = ModGUID + ".cfg";
         private static string ConfigFileFullPath = Paths.ConfigPath + Path.DirectorySeparatorChar + ConfigFileName;
         internal static string ConnectionError = "";
-        private readonly Harmony _harmony = new(ModGUID);
+        internal readonly Harmony _harmony = new(ModGUID);
         private static readonly ConfigSync ConfigSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion, ModRequired = false};
 
         public static bool CHEIsLoaded;
         private Assembly _cheAssembly = null!;
         public static MethodInfo? CHEInBuildMode;
         public static readonly ManualLogSource FirstPersonModeLogger = BepInEx.Logging.Logger.CreateLogSource(ModName);
+        internal static FirstPersonModePlugin Instance;
 
         public enum Toggle
         {
@@ -81,6 +83,7 @@ namespace FirstPersonMode
 
         public void Awake()
         {
+            Instance = this;
             if (Chainloader.PluginInfos.ContainsKey("org.bepinex.plugins.valheim_plus"))
             {
                 FirstPersonModeLogger.LogWarning("Valheim Plus detected, disabling FirstPersonMode to prevent camera stuttering. Please use the First Person mode in Valheim Plus or disable it to use this mod.");
@@ -129,6 +132,7 @@ namespace FirstPersonMode
         private void Start()
         {
             AutoDoc();
+            PPCompat.Init();
         }
 
         private void AutoDoc()
