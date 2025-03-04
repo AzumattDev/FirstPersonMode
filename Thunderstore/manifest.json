@@ -1,6 +1,6 @@
 {
   "name": "FirstPersonMode",
-  "version_number": "1.3.8",
+  "version_number": "1.3.9",
   "website_url": "https://discord.gg/pdHgy6Bsng",
   "description": "Simple mod that allows First Person. It moves the camera into the player's head. It hides what is needed either through culling the character model or hiding the head by shrinking it (configuration value)",
   "dependencies": [

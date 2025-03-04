@@ -108,6 +108,7 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="CamHighFeqUpdater.cs" />
         <Compile Include="Patches.cs"/>
         <Compile Include="Plugin.cs"/>
         <Compile Include="Properties\AssemblyInfo.cs"/>

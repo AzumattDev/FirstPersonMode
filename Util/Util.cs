@@ -145,19 +145,18 @@ public static class Functions
 
             __instance.m_nearClipPlaneMax = FirstPersonModePlugin.NearClipPlaneMaxConfig.Value;
             Vector3 currentPosition = __instance.transform.position;
-            //__instance.transform.position = headPoint + offset;
             __instance.transform.position = Vector3.Lerp(currentPosition, headPoint + offset, 1f);
+            
+            /*CameraHighFrequencyUpdater.Instance.UpdateTarget(headPoint + offset, __instance.transform.rotation);
+            var (smoothPos, smoothRot) = CameraHighFrequencyUpdater.Instance.GetSmoothedTransform();
+            __instance.transform.position = smoothPos;
+            __instance.transform.rotation = smoothRot;*/
 
             // Check mouse scroll input
-            if (localPlayer.TakeInput() && Input.GetAxis("Mouse ScrollWheel") < 0 && !localPlayer.InPlaceMode()) // If scrolling down
+            if ((localPlayer.TakeInput() && Input.GetAxis("Mouse ScrollWheel") < 0 && !localPlayer.InPlaceMode())
+                || (ZInput.GetButton("JoyAltKeys") && !Hud.InRadial() && __instance.m_camZoomToggle && ZInput.GetButton("JoyCamZoomOut"))) // If scrolling down
             {
                 __instance.m_minDistance += 2f; // Increment m_minDistance
-            }
-
-            if (ZInput.GetButton("JoyAltKeys") && !Hud.InRadial())
-            {
-                if (__instance.m_camZoomToggle && ZInput.GetButton("JoyCamZoomOut"))
-                    __instance.m_minDistance += 2f;
             }
 
             // Update neck twist
@@ -174,9 +173,7 @@ public static class Functions
         else
         {
             // Update camera position and rotation in non-first-person mode
-            Vector3 position;
-            Quaternion rotation;
-            __instance.GetCameraPosition(dt, out position, out rotation);
+            __instance.GetCameraPosition(dt, out Vector3 position, out Quaternion rotation);
             __instance.transform.position = position;
             __instance.transform.rotation = rotation;
         }
