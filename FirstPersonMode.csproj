@@ -120,6 +120,7 @@
         <None Include="packages.config" />
     </ItemGroup>
     <ItemGroup>
+        <Content Include=".github\workflows\publish-mod.yml" />
         <Content Include=".gitignore"/>
         <Content Include="environment.props"/>
         <Content Include="ILRepack.targets" />
