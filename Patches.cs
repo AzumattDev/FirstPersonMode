@@ -393,14 +393,5 @@ static class UpdateHud_fixshiphud
         {
             __instance.m_shipControlsRoot.transform.position = new Vector3(mainCamera.pixelWidth * 0.5f, mainCamera.pixelHeight * 0.2f, 0.0f);
         }
-        else
-        {
-            Ship controlledShip = player.GetControlledShip();
-            if (controlledShip != null)
-            {
-                // Normal position
-                __instance.m_shipControlsRoot.transform.position = mainCamera.WorldToScreenPoint(controlledShip.m_controlGuiPos.position);
-            }
-        }
     }
 }
