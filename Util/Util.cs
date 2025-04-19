@@ -154,7 +154,7 @@ public static class Functions
 
             // Check mouse scroll input
             if ((localPlayer.TakeInput() && Input.GetAxis("Mouse ScrollWheel") < 0 && !localPlayer.InPlaceMode())
-                || (ZInput.GetButton("JoyAltKeys") && !Hud.InRadial() && __instance.m_camZoomToggle && ZInput.GetButton("JoyCamZoomOut"))) // If scrolling down
+                || (ZInput.GetButton("JoyAltKeys") && !Hud.InRadial() && ZInput.GetButton("JoyCamZoomOut"))) // If scrolling down
             {
                 __instance.m_minDistance += 2f; // Increment m_minDistance
             }
