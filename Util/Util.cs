@@ -11,7 +11,12 @@ public static class KeyboardExtensions
     // since KeyboardShortcut.IsPressed and KeyboardShortcut.IsDown behave unintuitively
     public static bool IsKeyDown(this KeyboardShortcut shortcut)
     {
-        return shortcut.MainKey != KeyCode.None && Input.GetKeyDown(shortcut.MainKey) && shortcut.Modifiers.All(Input.GetKey);
+        if (shortcut.MainKey == KeyCode.None) return false;
+
+        bool mainKeyDown = Input.GetKeyDown(shortcut.MainKey);
+        bool modifiersHeld = shortcut.Modifiers.All(Input.GetKey);
+
+        return mainKeyDown && modifiersHeld;
     }
 
     public static bool IsKeyHeld(this KeyboardShortcut shortcut)
@@ -38,6 +43,17 @@ public static class Functions
         return FirstPersonModePlugin.DynamicPerson.IsFirstPerson;
     }
 
+    internal static void HandleScrollOutDetection(ref GameCamera __instance, Player localPlayer)
+    {
+        if (!IsInFirstPersonMode()) return;
+
+        // Check mouse scroll input or gamepad zoom out
+        if ((localPlayer.TakeInput() && Input.GetAxis("Mouse ScrollWheel") < 0 && !localPlayer.InPlaceMode())
+            || (ZInput.GetButton("JoyAltKeys") && !Hud.InRadial() && ZInput.GetButton("JoyCamZoomOut")))
+        {
+            __instance.m_minDistance += 2f;
+        }
+    }
 
     internal static void SetupFP(ref GameCamera __instance, ref Player localPlayer)
     {
@@ -71,12 +87,14 @@ public static class Functions
         if (FirstPersonModePlugin.RaiseFOVHotkey.Value.IsKeyDown())
         {
             __instance.m_fov += 1f;
-            Console.instance.AddString($"Changed fov to: {__instance.m_fov}");
+            FirstPersonModePlugin.DefaultFOV.Value = __instance.m_fov;
+            Console.instance?.AddString($"Changed fov to: {__instance.m_fov}");
         }
         else if (FirstPersonModePlugin.LowerFOVHotkey.Value.IsKeyDown())
         {
             __instance.m_fov -= 1f;
-            Console.instance.AddString($"Changed fov to: {__instance.m_fov}");
+            FirstPersonModePlugin.DefaultFOV.Value = __instance.m_fov;
+            Console.instance?.AddString($"Changed fov to: {__instance.m_fov}");
         }
     }
 
@@ -146,18 +164,11 @@ public static class Functions
             __instance.m_nearClipPlaneMax = FirstPersonModePlugin.NearClipPlaneMaxConfig.Value;
             Vector3 currentPosition = __instance.transform.position;
             __instance.transform.position = Vector3.Lerp(currentPosition, headPoint + offset, 1f);
-            
+
             /*CameraHighFrequencyUpdater.Instance.UpdateTarget(headPoint + offset, __instance.transform.rotation);
             var (smoothPos, smoothRot) = CameraHighFrequencyUpdater.Instance.GetSmoothedTransform();
             __instance.transform.position = smoothPos;
             __instance.transform.rotation = smoothRot;*/
-
-            // Check mouse scroll input
-            if ((localPlayer.TakeInput() && Input.GetAxis("Mouse ScrollWheel") < 0 && !localPlayer.InPlaceMode())
-                || (ZInput.GetButton("JoyAltKeys") && !Hud.InRadial() && ZInput.GetButton("JoyCamZoomOut"))) // If scrolling down
-            {
-                __instance.m_minDistance += 2f; // Increment m_minDistance
-            }
 
             // Update neck twist
             if (localPlayer.InDodge() || localPlayer.m_attached) return;

@@ -258,8 +258,7 @@ public static class GameCameraUpdatePatch
         bool isFirstPerson = Functions.IsInFirstPersonMode();
         bool isToggleInitiated = FirstPersonModePlugin.ToggleFirstPersonHotkey.Value.IsKeyDown();
 
-        // Scrolling in to first person
-        if ((__instance.m_distance <= 1 && !isFirstPerson && !isToggleInitiated) || FirstPersonModePlugin.FirstPersonEnforced.Value == FirstPersonModePlugin.Toggle.On)
+        if ((__instance.m_distance <= 1 || FirstPersonModePlugin.FirstPersonEnforced.Value == FirstPersonModePlugin.Toggle.On) && !isFirstPerson && !isToggleInitiated)
         {
             isFirstPerson = true;
             FirstPersonModePlugin.DynamicPerson.IsFirstPerson = true;
@@ -337,6 +336,8 @@ public static class GameCameraUpdatePatch
                 Functions.HandleNotFirstPersonMode(ref __instance, localPlayer);
             }
         }
+
+        Functions.HandleScrollOutDetection(ref __instance, localPlayer);
 
         // Camera positioning based on player state
         if (localPlayer.IsDead() && localPlayer.GetRagdoll())
