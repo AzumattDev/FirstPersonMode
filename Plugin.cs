@@ -12,120 +12,120 @@ using JetBrains.Annotations;
 using UnityEngine;
 using ServerSync;
 
-namespace FirstPersonMode
+namespace FirstPersonMode;
+
+[BepInPlugin(ModGUID, ModName, ModVersion)]
+[BepInDependency("Azumatt.BuildCameraCHE", BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency("org.bepinex.plugins.valheim_plus", BepInDependency.DependencyFlags.SoftDependency)]
+public class FirstPersonModePlugin : BaseUnityPlugin
 {
-    [BepInPlugin(ModGUID, ModName, ModVersion)]
-    [BepInDependency("Azumatt.BuildCameraCHE", BepInDependency.DependencyFlags.SoftDependency)]
-    [BepInDependency("org.bepinex.plugins.valheim_plus", BepInDependency.DependencyFlags.SoftDependency)]
-    public class FirstPersonModePlugin : BaseUnityPlugin
+    internal const string ModName = "FirstPersonMode";
+    internal const string ModVersion = "1.3.11";
+    internal const string Author = "Azumatt";
+    private const string ModGUID = Author + "." + ModName;
+    private static string ConfigFileName = ModGUID + ".cfg";
+    private static string ConfigFileFullPath = Paths.ConfigPath + Path.DirectorySeparatorChar + ConfigFileName;
+    internal static string ConnectionError = "";
+    internal readonly Harmony _harmony = new(ModGUID);
+    private static readonly ConfigSync ConfigSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion, ModRequired = false };
+
+    public static bool CHEIsLoaded;
+    private Assembly _cheAssembly = null!;
+    public static MethodInfo? CHEInBuildMode;
+    public static readonly ManualLogSource FirstPersonModeLogger = BepInEx.Logging.Logger.CreateLogSource(ModName);
+    internal static FirstPersonModePlugin Instance;
+
+    public enum Toggle
     {
-        internal const string ModName = "FirstPersonMode";
-        internal const string ModVersion = "1.3.11";
-        internal const string Author = "Azumatt";
-        private const string ModGUID = Author + "." + ModName;
-        private static string ConfigFileName = ModGUID + ".cfg";
-        private static string ConfigFileFullPath = Paths.ConfigPath + Path.DirectorySeparatorChar + ConfigFileName;
-        internal static string ConnectionError = "";
-        internal readonly Harmony _harmony = new(ModGUID);
-        private static readonly ConfigSync ConfigSync = new(ModGUID) { DisplayName = ModName, CurrentVersion = ModVersion, MinimumRequiredVersion = ModVersion, ModRequired = false };
+        On = 1,
+        Off = 0
+    }
 
-        public static bool CHEIsLoaded;
-        private Assembly _cheAssembly = null!;
-        public static MethodInfo? CHEInBuildMode;
-        public static readonly ManualLogSource FirstPersonModeLogger = BepInEx.Logging.Logger.CreateLogSource(ModName);
-        internal static FirstPersonModePlugin Instance;
+    // Struct to hold the dynamic values
+    public struct DynamicPerson
+    {
+        // Are we in first person or not
+        public static bool IsFirstPerson = false;
 
-        public enum Toggle
+        // Holder for old m_3rdOffset value
+        public static Vector3 NoFp3RdOffset = Vector3.zero;
+
+        // Holder for old m_fpsOffset value
+        public static Vector3 NoFpFPSOffset = Vector3.zero;
+    };
+
+    // Struct to hold Camera constants
+    public struct CachedCameraValues
+    {
+        // Valheim zoom thingy value
+        public static float ZoomSens = 10f;
+
+        // Min and max distance of camera
+        public static float MinDistance = 1.0f;
+
+        public static float MaxDistance = 8f;
+        public static float FOV = 8f;
+
+        // Near Clip Plane max and min
+        public static float NearClipPlaneMax = 0.02f;
+        public static float NearClipPlaneMin = 0.01f;
+    };
+
+    public void Awake()
+    {
+        Instance = this;
+        if (Chainloader.PluginInfos.ContainsKey("org.bepinex.plugins.valheim_plus"))
         {
-            On = 1,
-            Off = 0
+            FirstPersonModeLogger.LogWarning("Valheim Plus detected, disabling FirstPersonMode to prevent camera stuttering. Please use the First Person mode in Valheim Plus or disable it to use this mod.");
+            return;
         }
 
-        // Struct to hold the dynamic values
-        public struct DynamicPerson
+        _serverConfigLocked = config("1 - General", "Lock Configuration", Toggle.On, new ConfigDescription("If on, the configuration is locked and can be changed by server admins only. All Synced With Server configurations will be enforced to the clients.", null, new ConfigurationManagerAttributes() { Order = 8 }));
+        ConfigSync.AddLockingConfigEntry(_serverConfigLocked);
+
+        // Config for First Person being enabled
+        FirstPersonEnabled = config("1 - Toggles", "Enable First Person", Toggle.On, "If on, First Person is enabled.");
+        FirstPersonEnforced = config("1 - Toggles", "Enforce First Person", Toggle.Off, "If on, First Person is enforced to always be on. Respects the Enable First Person configuration and both must be on for First Person to be enforced.");
+        NoHeadMode = config("1 - Toggles", "Hide Head", Toggle.Off, "If on, the camera will not use the culling mode and will instead shrink the head to hide it. This method is a bit better overall as your armor isn't see through, but looks a little weird. Headless people always do.", false);
+        CenterBehindPlayer = config("1 - Toggles", "Center Behind Player", Toggle.Off, "If on, the camera will center behind the player when not in First Person. This is useful for people who want to play in third person but want the camera to be centered behind the player and not a little offset like vanilla has it.", false);
+
+        // Default FOV
+        DefaultFOV = config("2 - Camera", "Default FOV", 65.0f, "Default FOV for First Person.", false);
+        NearClipPlaneMinConfig = config("2 - Camera", "NearClipPlaneMin", 0.17f, "Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.", false);
+        NearClipPlaneMaxConfig = config("2 - Camera", "NearClipPlaneMax", 0.17f, "Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.", false);
+        OffsetWhenAiming = config("2 - Camera", "OffsetWhenAiming", new Vector3(0.35f, 0.15f, 0.071f), "Adjusts the x offset when aiming with a bow. Higher number = more to the right, lower is more to the left.", false);
+
+        // Hotkeys for turning on FOV and controlling the FOV
+        ToggleFirstPersonHotkey = config("3 - Keyboard Shortcuts", "Toggle First Person Shortcut", new KeyboardShortcut(KeyCode.H, KeyCode.LeftShift), "Keyboard Shortcut needed to toggle First Person. If FirstPersonMode is enforced, you cannot toggle.", false);
+        RaiseFOVHotkey = config("3 - Keyboard Shortcuts", "Raise FOV Shortcut", new KeyboardShortcut(KeyCode.PageUp, KeyCode.LeftShift), "Keyboard Shortcut needed to raise FOV.", false);
+        LowerFOVHotkey = config("3 - Keyboard Shortcuts", "Lower FOV Shortcut", new KeyboardShortcut(KeyCode.PageDown, KeyCode.LeftShift), "Keyboard Shortcut needed to lower FOV.", false);
+
+        CleanupOldConfigEntries();
+
+        CHEIsLoaded = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("Azumatt.BuildCameraCHE");
+
+
+        if (CHEIsLoaded)
         {
-            // Are we in first person or not
-            public static bool IsFirstPerson = false;
+            _cheAssembly = BepInEx.Bootstrap.Chainloader.PluginInfos["Azumatt.BuildCameraCHE"].Instance.GetType().Assembly;
 
-            // Holder for old m_3rdOffset value
-            public static Vector3 NoFp3RdOffset = Vector3.zero;
-
-            // Holder for old m_fpsOffset value
-            public static Vector3 NoFpFPSOffset = Vector3.zero;
-        };
-
-        // Struct to hold Camera constants
-        public struct CachedCameraValues
-        {
-            // Valheim zoom thingy value
-            public static float ZoomSens = 10f;
-
-            // Min and max distance of camera
-            public static float MinDistance = 1.0f;
-
-            public static float MaxDistance = 8f;
-            public static float FOV = 8f;
-
-            // Near Clip Plane max and min
-            public static float NearClipPlaneMax = 0.02f;
-            public static float NearClipPlaneMin = 0.01f;
-        };
-
-        public void Awake()
-        {
-            Instance = this;
-            if (Chainloader.PluginInfos.ContainsKey("org.bepinex.plugins.valheim_plus"))
-            {
-                FirstPersonModeLogger.LogWarning("Valheim Plus detected, disabling FirstPersonMode to prevent camera stuttering. Please use the First Person mode in Valheim Plus or disable it to use this mod.");
-                return;
-            }
-
-            _serverConfigLocked = config("1 - General", "Lock Configuration", Toggle.On, new ConfigDescription("If on, the configuration is locked and can be changed by server admins only. All Synced With Server configurations will be enforced to the clients.", null, new ConfigurationManagerAttributes() { Order = 8 }));
-            ConfigSync.AddLockingConfigEntry(_serverConfigLocked);
-
-            // Config for First Person being enabled
-            FirstPersonEnabled = config("1 - Toggles", "Enable First Person", Toggle.On, "If on, First Person is enabled.");
-            FirstPersonEnforced = config("1 - Toggles", "Enforce First Person", Toggle.Off, "If on, First Person is enforced to always be on. Respects the Enable First Person configuration and both must be on for First Person to be enforced.");
-            NoHeadMode = config("1 - Toggles", "Hide Head", Toggle.Off, "If on, the camera will not use the culling mode and will instead shrink the head to hide it. This method is a bit better overall as your armor isn't see through, but looks a little weird. Headless people always do.", false);
-            CenterBehindPlayer = config("1 - Toggles", "Center Behind Player", Toggle.Off, "If on, the camera will center behind the player when not in First Person. This is useful for people who want to play in third person but want the camera to be centered behind the player and not a little offset like vanilla has it.", false);
-
-            // Default FOV
-            DefaultFOV = config("2 - Camera", "Default FOV", 65.0f, "Default FOV for First Person.", false);
-            NearClipPlaneMinConfig = config("2 - Camera", "NearClipPlaneMin", 0.17f, "Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.", false);
-            NearClipPlaneMaxConfig = config("2 - Camera", "NearClipPlaneMax", 0.17f, "Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.", false);
-            OffsetWhenAiming = config("2 - Camera", "OffsetWhenAiming", new Vector3(0.35f, 0.15f, 0.071f), "Adjusts the x offset when aiming with a bow. Higher number = more to the right, lower is more to the left.", false);
-
-            // Hotkeys for turning on FOV and controlling the FOV
-            ToggleFirstPersonHotkey = config("3 - Keyboard Shortcuts", "Toggle First Person Shortcut", new KeyboardShortcut(KeyCode.H, KeyCode.LeftShift), "Keyboard Shortcut needed to toggle First Person. If FirstPersonMode is enforced, you cannot toggle.", false);
-            RaiseFOVHotkey = config("3 - Keyboard Shortcuts", "Raise FOV Shortcut", new KeyboardShortcut(KeyCode.PageUp, KeyCode.LeftShift), "Keyboard Shortcut needed to raise FOV.", false);
-            LowerFOVHotkey = config("3 - Keyboard Shortcuts", "Lower FOV Shortcut", new KeyboardShortcut(KeyCode.PageDown, KeyCode.LeftShift), "Keyboard Shortcut needed to lower FOV.", false);
-
-            CleanupOldConfigEntries();
-
-            CHEIsLoaded = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("Azumatt.BuildCameraCHE");
-
-
-            if (CHEIsLoaded)
-            {
-                _cheAssembly = BepInEx.Bootstrap.Chainloader.PluginInfos["Azumatt.BuildCameraCHE"].Instance.GetType().Assembly;
-
-                // Get the type for the BuildCameraCHEPlugin, go into the Valheim_Build_Camera namespace, and the Utils class. Get the public method InBuildMode
-                CHEInBuildMode = _cheAssembly.GetType("Valheim_Build_Camera.Utils")?.GetMethod("InBuildMode", BindingFlags.Public | BindingFlags.Static);
-            }
-
-            Assembly assembly = Assembly.GetExecutingAssembly();
-            _harmony.PatchAll(assembly);
-            SetupWatcher();
+            // Get the type for the BuildCameraCHEPlugin, go into the Valheim_Build_Camera namespace, and the Utils class. Get the public method InBuildMode
+            CHEInBuildMode = _cheAssembly.GetType("Valheim_Build_Camera.Utils")?.GetMethod("InBuildMode", BindingFlags.Public | BindingFlags.Static);
         }
 
-        private void Start()
-        {
-            AutoDoc();
-            PPCompat.Init();
-        }
+        Assembly assembly = Assembly.GetExecutingAssembly();
+        _harmony.PatchAll(assembly);
+        SetupWatcher();
+    }
 
-        private void AutoDoc()
-        {
+    private void Start()
+    {
+        AutoDoc();
+        PPCompat.Init();
+    }
+
+    private void AutoDoc()
+    {
 #if DEBUG
             // Store Regex to get all characters after a [
             Regex regex = new(@"\[(.*?)\]");
@@ -152,108 +152,107 @@ namespace FirstPersonMode
                 Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, $"{ModName}_AutoDoc.md"),
                 sb.ToString());
 #endif
-        }
+    }
 
-        private void OnDestroy()
+    private void OnDestroy()
+    {
+        Config.Save();
+    }
+
+    private void SetupWatcher()
+    {
+        FileSystemWatcher watcher = new(Paths.ConfigPath, ConfigFileName);
+        watcher.Changed += ReadConfigValues;
+        watcher.Created += ReadConfigValues;
+        watcher.Renamed += ReadConfigValues;
+        watcher.IncludeSubdirectories = true;
+        watcher.SynchronizingObject = ThreadingHelper.SynchronizingObject;
+        watcher.EnableRaisingEvents = true;
+    }
+
+    private void ReadConfigValues(object sender, FileSystemEventArgs e)
+    {
+        if (!File.Exists(ConfigFileFullPath)) return;
+        try
         {
-            Config.Save();
-        }
-
-        private void SetupWatcher()
-        {
-            FileSystemWatcher watcher = new(Paths.ConfigPath, ConfigFileName);
-            watcher.Changed += ReadConfigValues;
-            watcher.Created += ReadConfigValues;
-            watcher.Renamed += ReadConfigValues;
-            watcher.IncludeSubdirectories = true;
-            watcher.SynchronizingObject = ThreadingHelper.SynchronizingObject;
-            watcher.EnableRaisingEvents = true;
-        }
-
-        private void ReadConfigValues(object sender, FileSystemEventArgs e)
-        {
-            if (!File.Exists(ConfigFileFullPath)) return;
-            try
-            {
-                FirstPersonModeLogger.LogDebug("ReadConfigValues called");
-                Config.Reload();
-            }
-            catch
-            {
-                FirstPersonModeLogger.LogError($"There was an issue loading your {ConfigFileName}");
-                FirstPersonModeLogger.LogError("Please check your config entries for spelling and format!");
-            }
-        }
-
-
-        private void CleanupOldConfigEntries()
-        {
-            // Remove config entries that no longer exist so they don't linger in users' config files
-            IDictionary? orphanedEntries = AccessTools.Property(Config.GetType(), "OrphanedEntries")?.GetValue(Config) as System.Collections.IDictionary;
-            if (orphanedEntries == null) return;
-
-            // Print all orphaned entries
-            foreach (DictionaryEntry dictionaryEntry in orphanedEntries)
-            {
-                FirstPersonModeLogger.LogError($"{dictionaryEntry.Key} = {dictionaryEntry.Value}");
-            }
-
-            bool changed = false;
-            changed |= orphanedEntries.Contains(new ConfigDefinition("2 - Camera", "Max Deviation")) && RemoveEntry(orphanedEntries, new ConfigDefinition("2 - Camera", "Max Deviation"));
-            changed |= orphanedEntries.Contains(new ConfigDefinition("2 - Camera", "Slerp Multiplier")) && RemoveEntry(orphanedEntries, new ConfigDefinition("2 - Camera", "Slerp Multiplier"));
-
-            if (!changed) return;
-            Config.Save();
+            FirstPersonModeLogger.LogDebug("ReadConfigValues called");
             Config.Reload();
         }
-
-        private static bool RemoveEntry(System.Collections.IDictionary dict, ConfigDefinition key)
+        catch
         {
-            dict.Remove(key);
-            return true;
+            FirstPersonModeLogger.LogError($"There was an issue loading your {ConfigFileName}");
+            FirstPersonModeLogger.LogError("Please check your config entries for spelling and format!");
         }
-
-        #region ConfigOptions
-
-        private static ConfigEntry<Toggle> _serverConfigLocked = null!;
-        internal static ConfigEntry<Toggle> FirstPersonEnabled = null!;
-        internal static ConfigEntry<Toggle> FirstPersonEnforced = null!;
-        internal static ConfigEntry<Toggle> NoHeadMode = null!;
-        internal static ConfigEntry<Toggle> CenterBehindPlayer = null!;
-        internal static ConfigEntry<float> DefaultFOV = null!;
-        internal static ConfigEntry<KeyboardShortcut> ToggleFirstPersonHotkey = null!;
-        internal static ConfigEntry<KeyboardShortcut> RaiseFOVHotkey = null!;
-        internal static ConfigEntry<KeyboardShortcut> LowerFOVHotkey = null!;
-        internal static ConfigEntry<float> NearClipPlaneMinConfig = null!;
-        internal static ConfigEntry<float> NearClipPlaneMaxConfig = null!;
-        internal static ConfigEntry<Vector3> OffsetWhenAiming = null!;
-
-
-        private ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description, bool synchronizedSetting = true)
-        {
-            ConfigDescription extendedDescription = new(description.Description + (synchronizedSetting ? " [Synced with Server]" : " [Not Synced with Server]"), description.AcceptableValues, description.Tags);
-            ConfigEntry<T> configEntry = Config.Bind(group, name, value, extendedDescription);
-            //var configEntry = Config.Bind(group, name, value, description);
-
-            SyncedConfigEntry<T> syncedConfigEntry = ConfigSync.AddConfigEntry(configEntry);
-            syncedConfigEntry.SynchronizedConfig = synchronizedSetting;
-
-            return configEntry;
-        }
-
-        private ConfigEntry<T> config<T>(string group, string name, T value, string description, bool synchronizedSetting = true)
-        {
-            return config(group, name, value, new ConfigDescription(description), synchronizedSetting);
-        }
-
-        private class ConfigurationManagerAttributes
-        {
-            [UsedImplicitly] public int? Order = null!;
-            [UsedImplicitly] public bool? Browsable = null!;
-            [UsedImplicitly] public string Category = null!;
-            [UsedImplicitly] public Action<ConfigEntryBase> CustomDrawer = null!;
-        }
-
-        #endregion
     }
+
+
+    private void CleanupOldConfigEntries()
+    {
+        // Remove config entries that no longer exist so they don't linger in users' config files
+        IDictionary? orphanedEntries = AccessTools.Property(Config.GetType(), "OrphanedEntries")?.GetValue(Config) as System.Collections.IDictionary;
+        if (orphanedEntries == null) return;
+
+        // Print all orphaned entries
+        foreach (DictionaryEntry dictionaryEntry in orphanedEntries)
+        {
+            FirstPersonModeLogger.LogError($"{dictionaryEntry.Key} = {dictionaryEntry.Value}");
+        }
+
+        bool changed = false;
+        changed |= orphanedEntries.Contains(new ConfigDefinition("2 - Camera", "Max Deviation")) && RemoveEntry(orphanedEntries, new ConfigDefinition("2 - Camera", "Max Deviation"));
+        changed |= orphanedEntries.Contains(new ConfigDefinition("2 - Camera", "Slerp Multiplier")) && RemoveEntry(orphanedEntries, new ConfigDefinition("2 - Camera", "Slerp Multiplier"));
+
+        if (!changed) return;
+        Config.Save();
+        Config.Reload();
+    }
+
+    private static bool RemoveEntry(System.Collections.IDictionary dict, ConfigDefinition key)
+    {
+        dict.Remove(key);
+        return true;
+    }
+
+    #region ConfigOptions
+
+    private static ConfigEntry<Toggle> _serverConfigLocked = null!;
+    internal static ConfigEntry<Toggle> FirstPersonEnabled = null!;
+    internal static ConfigEntry<Toggle> FirstPersonEnforced = null!;
+    internal static ConfigEntry<Toggle> NoHeadMode = null!;
+    internal static ConfigEntry<Toggle> CenterBehindPlayer = null!;
+    internal static ConfigEntry<float> DefaultFOV = null!;
+    internal static ConfigEntry<KeyboardShortcut> ToggleFirstPersonHotkey = null!;
+    internal static ConfigEntry<KeyboardShortcut> RaiseFOVHotkey = null!;
+    internal static ConfigEntry<KeyboardShortcut> LowerFOVHotkey = null!;
+    internal static ConfigEntry<float> NearClipPlaneMinConfig = null!;
+    internal static ConfigEntry<float> NearClipPlaneMaxConfig = null!;
+    internal static ConfigEntry<Vector3> OffsetWhenAiming = null!;
+
+
+    private ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description, bool synchronizedSetting = true)
+    {
+        ConfigDescription extendedDescription = new(description.Description + (synchronizedSetting ? " [Synced with Server]" : " [Not Synced with Server]"), description.AcceptableValues, description.Tags);
+        ConfigEntry<T> configEntry = Config.Bind(group, name, value, extendedDescription);
+        //var configEntry = Config.Bind(group, name, value, description);
+
+        SyncedConfigEntry<T> syncedConfigEntry = ConfigSync.AddConfigEntry(configEntry);
+        syncedConfigEntry.SynchronizedConfig = synchronizedSetting;
+
+        return configEntry;
+    }
+
+    private ConfigEntry<T> config<T>(string group, string name, T value, string description, bool synchronizedSetting = true)
+    {
+        return config(group, name, value, new ConfigDescription(description), synchronizedSetting);
+    }
+
+    private class ConfigurationManagerAttributes
+    {
+        [UsedImplicitly] public int? Order = null!;
+        [UsedImplicitly] public bool? Browsable = null!;
+        [UsedImplicitly] public string Category = null!;
+        [UsedImplicitly] public Action<ConfigEntryBase> CustomDrawer = null!;
+    }
+
+    #endregion
 }
