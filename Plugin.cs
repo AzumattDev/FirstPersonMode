@@ -1,8 +1,7 @@
 ﻿using System;
+using System.Collections;
 using System.IO;
 using System.Reflection;
-using System.Text;
-using System.Text.RegularExpressions;
 using BepInEx;
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
@@ -53,15 +52,6 @@ namespace FirstPersonMode
 
             // Holder for old m_fpsOffset value
             public static Vector3 NoFpFPSOffset = Vector3.zero;
-
-            public static float MaxDeviation = 40f;
-
-            public static Quaternion PlayerRotation = Quaternion.identity;
-
-            public static Rigidbody PlayerRigidbody = null!;
-
-            // Static field to store the last target camera position
-            public static Vector3 LastTargetPosition = Vector3.zero;
         };
 
         // Struct to hold Camera constants
@@ -104,14 +94,13 @@ namespace FirstPersonMode
             NearClipPlaneMinConfig = config("2 - Camera", "NearClipPlaneMin", 0.17f, "Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.", false);
             NearClipPlaneMaxConfig = config("2 - Camera", "NearClipPlaneMax", 0.17f, "Adjusts the nearest distance at which objects are rendered in first person view. Increase to reduce body visibility; too high might clip nearby objects.", false);
             OffsetWhenAiming = config("2 - Camera", "OffsetWhenAiming", new Vector3(0.35f, 0.15f, 0.071f), "Adjusts the x offset when aiming with a bow. Higher number = more to the right, lower is more to the left.", false);
-            MaxDeviation = config("2 - Camera", "Max Deviation", 40f, "Max deviation angle before rotating the player. This is essentially the same thing as a 'Deadzone' for the camera. Similar to how a controller has a deadzone for the joystick.", false);
-            MaxDeviation.SettingChanged += (sender, args) => DynamicPerson.MaxDeviation = MaxDeviation.Value;
-            SlerpMult = config("2 - Camera", "Slerp Multiplier", 20f, "Multiplier for the slerp value. Higher values will make the camera move faster (The player's rotation will match the target rotation more quickly. This can make the rotation feel more immediate but might appear less smooth if the change is too rapid.), lower values will make the camera move slower. (The player's rotation will take longer to match the target rotation. This will make the transition appear smoother but might feel laggy if too slow.)", false);
 
             // Hotkeys for turning on FOV and controlling the FOV
             ToggleFirstPersonHotkey = config("3 - Keyboard Shortcuts", "Toggle First Person Shortcut", new KeyboardShortcut(KeyCode.H, KeyCode.LeftShift), "Keyboard Shortcut needed to toggle First Person. If FirstPersonMode is enforced, you cannot toggle.", false);
             RaiseFOVHotkey = config("3 - Keyboard Shortcuts", "Raise FOV Shortcut", new KeyboardShortcut(KeyCode.PageUp, KeyCode.LeftShift), "Keyboard Shortcut needed to raise FOV.", false);
             LowerFOVHotkey = config("3 - Keyboard Shortcuts", "Lower FOV Shortcut", new KeyboardShortcut(KeyCode.PageDown, KeyCode.LeftShift), "Keyboard Shortcut needed to lower FOV.", false);
+
+            CleanupOldConfigEntries();
 
             CHEIsLoaded = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("Azumatt.BuildCameraCHE");
 
@@ -197,6 +186,33 @@ namespace FirstPersonMode
         }
 
 
+        private void CleanupOldConfigEntries()
+        {
+            // Remove config entries that no longer exist so they don't linger in users' config files
+            IDictionary? orphanedEntries = AccessTools.Property(Config.GetType(), "OrphanedEntries")?.GetValue(Config) as System.Collections.IDictionary;
+            if (orphanedEntries == null) return;
+
+            // Print all orphaned entries
+            foreach (DictionaryEntry dictionaryEntry in orphanedEntries)
+            {
+                FirstPersonModeLogger.LogError($"{dictionaryEntry.Key} = {dictionaryEntry.Value}");
+            }
+
+            bool changed = false;
+            changed |= orphanedEntries.Contains(new ConfigDefinition("2 - Camera", "Max Deviation")) && RemoveEntry(orphanedEntries, new ConfigDefinition("2 - Camera", "Max Deviation"));
+            changed |= orphanedEntries.Contains(new ConfigDefinition("2 - Camera", "Slerp Multiplier")) && RemoveEntry(orphanedEntries, new ConfigDefinition("2 - Camera", "Slerp Multiplier"));
+
+            if (!changed) return;
+            Config.Save();
+            Config.Reload();
+        }
+
+        private static bool RemoveEntry(System.Collections.IDictionary dict, ConfigDefinition key)
+        {
+            dict.Remove(key);
+            return true;
+        }
+
         #region ConfigOptions
 
         private static ConfigEntry<Toggle> _serverConfigLocked = null!;
@@ -211,8 +227,6 @@ namespace FirstPersonMode
         internal static ConfigEntry<float> NearClipPlaneMinConfig = null!;
         internal static ConfigEntry<float> NearClipPlaneMaxConfig = null!;
         internal static ConfigEntry<Vector3> OffsetWhenAiming = null!;
-        internal static ConfigEntry<float> MaxDeviation = null!;
-        internal static ConfigEntry<float> SlerpMult = null!;
 
 
         private ConfigEntry<T> config<T>(string group, string name, T value, ConfigDescription description, bool synchronizedSetting = true)

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using BepInEx.Configuration;
 using UnityEngine;
 
@@ -169,17 +168,6 @@ public static class Functions
             var (smoothPos, smoothRot) = CameraHighFrequencyUpdater.Instance.GetSmoothedTransform();
             __instance.transform.position = smoothPos;
             __instance.transform.rotation = smoothRot;*/
-
-            // Update neck twist
-            if (localPlayer.InDodge() || localPlayer.m_attached) return;
-            float deviationAngle = 0f - CalculateDeviationAngle(localPlayer.m_eye.rotation.eulerAngles.y, localPlayer.m_body.rotation.eulerAngles.y);
-            if (!(Math.Abs(deviationAngle) > FirstPersonModePlugin.DynamicPerson.MaxDeviation)) return;
-            float num = localPlayer.m_body.rotation.eulerAngles.y * 1f;
-            num += (Math.Abs(deviationAngle) - FirstPersonModePlugin.DynamicPerson.MaxDeviation) * Math.Sign(deviationAngle);
-            var rotation = localPlayer.m_body.rotation;
-            FirstPersonModePlugin.DynamicPerson.PlayerRotation = Quaternion.Euler(rotation.eulerAngles.x, num, rotation.eulerAngles.z);
-            FirstPersonModePlugin.DynamicPerson.PlayerRigidbody = localPlayer.m_body;
-            FirstPersonModePlugin.DynamicPerson.PlayerRigidbody.rotation = Quaternion.Slerp(FirstPersonModePlugin.DynamicPerson.PlayerRigidbody.rotation, FirstPersonModePlugin.DynamicPerson.PlayerRotation, dt * FirstPersonModePlugin.SlerpMult.Value);
         }
         else
         {
@@ -188,11 +176,5 @@ public static class Functions
             __instance.transform.position = position;
             __instance.transform.rotation = rotation;
         }
-    }
-
-    public static float CalculateDeviationAngle(float angle1, float angle2)
-    {
-        float difference = (angle2 - angle1 + 540f) % 360f - 180f;
-        return (difference >= -180f) ? difference : difference + 360f;
     }
 }

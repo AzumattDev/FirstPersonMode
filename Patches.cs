@@ -22,6 +22,15 @@ static class InstanceRendererOnEnablePatch
     }
 }
 
+[HarmonyPatch(typeof(Player), nameof(Player.TestGhostClipping))]
+public static class Player_TestGhostClipping_Patch
+{
+    private static bool Prefix()
+    {
+        return FirstPersonModePlugin.FirstPersonEnabled.Value == FirstPersonModePlugin.Toggle.On;
+    }
+}
+
 [HarmonyPatch(typeof(Pickable), nameof(Pickable.Awake))]
 static class PickableAwakePatch
 {
@@ -303,6 +312,7 @@ public static class GameCameraUpdatePatch
             {
                 // Jump camera back to prevent auto forcing you back into first person mode.
                 __instance.m_distance = 1.5f;
+
                 // Exiting first person mode
                 __instance.m_3rdOffset = FirstPersonModePlugin.DynamicPerson.NoFp3RdOffset;
                 __instance.m_fpsOffset = FirstPersonModePlugin.DynamicPerson.NoFpFPSOffset;
@@ -356,6 +366,47 @@ public static class GameCameraUpdatePatch
         }
 
         __instance.UpdateCameraShake(dt);
+    }
+}
+
+[HarmonyPatch(typeof(Player), nameof(Player.AlwaysRotateCamera))]
+static class PlayerAlwaysRotateCameraPatch
+{
+    static void Postfix(Player __instance, ref bool __result)
+    {
+        if (__instance == Player.m_localPlayer && Functions.IsInFirstPersonMode())
+            __result = true;
+    }
+}
+
+[HarmonyPatch(typeof(Player), nameof(Player.LateUpdate))]
+static class PlayerLateUpdatePatch
+{
+    private static Transform _cachedSpine;
+    private static Player _cachedPlayer;
+
+    static void Postfix(Player __instance)
+    {
+        if (__instance != Player.m_localPlayer) return;
+        if (!Functions.IsInFirstPersonMode()) return;
+        if (!__instance.IsDrawingBow()) return;
+
+        if (_cachedSpine == null || _cachedPlayer != __instance)
+        {
+            _cachedSpine = Utils.FindChild(__instance.transform, "Spine");
+            _cachedPlayer = __instance;
+        }
+
+        if (_cachedSpine == null) return;
+
+        // Rotate the spine to match eye direction so the character properly aims up/down.
+        // Must run in LateUpdate (after animator) to override animation bone poses.
+        Vector3 eyeAngles = __instance.m_eye.transform.rotation.eulerAngles;
+        _cachedSpine.rotation = Quaternion.Euler(
+            _cachedSpine.rotation.eulerAngles.x, // Keep animated pitch
+            eyeAngles.y + 90f, // Face aiming yaw direction (+90 for rig orientation)
+            eyeAngles.x // Vertical aim angle
+        );
     }
 }
 
