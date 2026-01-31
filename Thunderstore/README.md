@@ -47,14 +47,6 @@ OffsetWhenAiming [Not Synced with Server]
 * Adjusts the x offset when aiming with a bow. Higher number = more to the right, lower is more to the left.
     * Default Value: {"x":0.3499999940395355,"y":0.15000000596046449,"z":0.07100000232458115}
 
-Max Deviation [Not Synced with Server]
-* Max deviation angle before rotating the player. This is essentially the same thing as a 'Deadzone' for the camera. Similar to how a controller has a deadzone for the joystick.
-    * Default Value: 40
-
-Slerp Multiplier [Not Synced with Server]
-* Multiplier for the slerp value. Higher values will make the camera move faster (The player's rotation will match the target rotation more quickly. This can make the rotation feel more immediate but might appear less smooth if the change is too rapid.), lower values will make the camera move slower. (The player's rotation will take longer to match the target rotation. This will make the transition appear smoother but might feel laggy if too slow.)
-    * Default Value: 20
-
 `3 - Keyboard Shortcuts`
 
 Toggle First Person Shortcut [Not Synced with Server]
