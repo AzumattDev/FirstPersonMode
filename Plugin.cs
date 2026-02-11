@@ -20,7 +20,7 @@ namespace FirstPersonMode;
 public class FirstPersonModePlugin : BaseUnityPlugin
 {
     internal const string ModName = "FirstPersonMode";
-    internal const string ModVersion = "1.3.11";
+    internal const string ModVersion = "1.3.12";
     internal const string Author = "Azumatt";
     private const string ModGUID = Author + "." + ModName;
     private static string ConfigFileName = ModGUID + ".cfg";
@@ -192,11 +192,13 @@ public class FirstPersonModePlugin : BaseUnityPlugin
         IDictionary? orphanedEntries = AccessTools.Property(Config.GetType(), "OrphanedEntries")?.GetValue(Config) as System.Collections.IDictionary;
         if (orphanedEntries == null) return;
 
+#if DEBUG
         // Print all orphaned entries
         foreach (DictionaryEntry dictionaryEntry in orphanedEntries)
         {
-            FirstPersonModeLogger.LogError($"{dictionaryEntry.Key} = {dictionaryEntry.Value}");
+            FirstPersonModeLogger.LogDebug($"{dictionaryEntry.Key} = {dictionaryEntry.Value}");
         }
+#endif
 
         bool changed = false;
         changed |= orphanedEntries.Contains(new ConfigDefinition("2 - Camera", "Max Deviation")) && RemoveEntry(orphanedEntries, new ConfigDefinition("2 - Camera", "Max Deviation"));
