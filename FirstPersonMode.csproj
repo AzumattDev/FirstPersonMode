@@ -117,7 +117,6 @@
     </ItemGroup>
     <ItemGroup>
         <None Include="App.config"/>
-        <None Include="packages.config" />
     </ItemGroup>
     <ItemGroup>
         <Content Include=".github\workflows\publish-mod.yml" />
@@ -134,6 +133,12 @@
         <Content Include="Thunderstore\manifest.json"/>
         <Content Include="Thunderstore\README.md"/>
         <Content Include="UpdateManifest.ps1"/>
+    </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.45">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
     <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
@@ -227,13 +232,6 @@ System.IO.File.WriteAllText(ManifestFile, content);
         <Copy SourceFiles="@(PackageFiles)" DestinationFolder="$(PackageDir)"/>
         <ZipDirectory SourceDirectory="$(PackageDir)" DestinationFile="Thunderstore\$(PackageName).zip" Overwrite="true"/>
         <RemoveDir Directories="$(PackageDir)"/>
-    </Target>
-    <Import Project="packages\ILRepack.Lib.MSBuild.Task.2.0.26\build\ILRepack.Lib.MSBuild.Task.targets" Condition="Exists('packages\ILRepack.Lib.MSBuild.Task.2.0.26\build\ILRepack.Lib.MSBuild.Task.targets')" />
-    <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-      <PropertyGroup>
-        <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105.The missing file is {0}.</ErrorText>
-      </PropertyGroup>
-      <Error Condition="!Exists('packages\ILRepack.Lib.MSBuild.Task.2.0.26\build\ILRepack.Lib.MSBuild.Task.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\ILRepack.Lib.MSBuild.Task.2.0.26\build\ILRepack.Lib.MSBuild.Task.targets'))" />
     </Target>
 
 </Project>
